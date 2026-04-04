@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "headline": { "type": "string" },
+    "brief": { "type": "string" },
+    "confidence": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "article_paragraphs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 3,
+      "maxItems": 6
+    },
+    "agreed_claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "meta": { "type": "string" },
+          "source_names": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 4
+          }
+        },
+        "required": ["title", "meta", "source_names"],
+        "additionalProperties": false
+      },
+      "maxItems": 4
+    },
+    "disputed_claims": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "meta": { "type": "string" },
+          "source_names": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 4
+          }
+        },
+        "required": ["title", "meta", "source_names"],
+        "additionalProperties": false
+      },
+      "maxItems": 3
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string" },
+          "percent": { "type": "integer", "minimum": 0, "maximum": 100 }
+        },
+        "required": ["label", "percent"],
+        "additionalProperties": false
+      },
+      "maxItems": 4
+    },
+    "watch_signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "copy": { "type": "string" }
+        },
+        "required": ["title", "copy"],
+        "additionalProperties": false
+      },
+      "maxItems": 4
+    },
+    "ripple_effects": {
+      "type": "object",
+      "properties": {
+        "24h": {
+          "type": "array",
+          "items": { "type": "string" },
+          "maxItems": 4
+        },
+        "7d": {
+          "type": "array",
+          "items": { "type": "string" },
+          "maxItems": 4
+        },
+        "30d": {
+          "type": "array",
+          "items": { "type": "string" },
+          "maxItems": 4
+        }
+      },
+      "required": ["24h", "7d", "30d"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "headline",
+    "brief",
+    "confidence",
+    "article_paragraphs",
+    "agreed_claims",
+    "disputed_claims",
+    "frames",
+    "watch_signals",
+    "ripple_effects"
+  ],
+  "additionalProperties": false
+}

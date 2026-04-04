@@ -16,4 +16,6 @@ export const discoveryConfig = {
   googleSeedCount: toNumber(process.env.GOOGLE_NEWS_SEED_COUNT, 8),
   autoRefreshMinutes: toNumber(process.env.NEWS_AUTO_REFRESH_MINUTES, 2),
   staleAfterMinutes: toNumber(process.env.NEWS_STALE_AFTER_MINUTES, 4),
+  aiProvider: process.env.AI_PROVIDER?.trim() || "codex-cli",
+  aiTimeoutMs: toNumber(process.env.AI_TIMEOUT_MS, 90000),
 };

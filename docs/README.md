@@ -1,6 +1,6 @@
 # Docs
 
-This folder contains the lightweight internal docs for the Zelthir MVP.
+This folder contains the internal product and architecture docs for Zelthir.
 
 ## Files
 

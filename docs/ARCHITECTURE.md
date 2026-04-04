@@ -1,6 +1,6 @@
 # Architecture Notes
 
-This repository is a lightweight Node and Express prototype for the `Zelthir` news intelligence MVP.
+This repository is a Node and Express application for `Zelthir`, an AI news intelligence platform with multi-source ingestion, event clustering, and Codex-backed story analysis.
 
 ## High-Level Flow
 
@@ -9,10 +9,12 @@ flowchart LR
     A["NewsAPI / Google News / RSS"] --> B["Discovery Providers"]
     B --> C["Cluster Engine"]
     C --> D["Metadata Hydration"]
-    D --> E["Homepage Cache or Sample Payload"]
-    E --> F["Express API"]
-    F --> G["/app UI"]
-    F --> H["/docs PRD Viewer"]
+    C --> E["Codex Story Analysis"]
+    D --> F["Homepage Cache or Sample Payload"]
+    E --> G["Express API"]
+    F --> G
+    G --> H["/app UI"]
+    G --> I["/docs PRD Viewer"]
 ```
 
 ## Runtime Surfaces
@@ -34,6 +36,8 @@ flowchart LR
   Forces a refresh of the homepage discovery pipeline.
 - `GET /api/image?url=...`
   Proxies remote images to reduce broken publisher image loads.
+- `GET /api/ai/story?clusterId=...`
+  Generates a structured source-backed intelligence payload for a selected cluster.
 
 ## Ingest Pipeline
 
@@ -54,6 +58,8 @@ flowchart LR
 
 - `src/ingest/clusterEngine.mjs`
   Deduplicates articles, scores title and snippet overlap, and chooses canonical cluster entries.
+- `src/ai/codexStoryAnalysis.mjs`
+  Builds an evidence-constrained prompt for a story cluster, invokes Codex, and normalizes the resulting intelligence payload.
 - `src/ingest/articleMetadata.mjs`
   Resolves Google News redirects, fetches page metadata, and improves title, description, and image quality.
 - `src/ingest/homeSample.mjs`
@@ -62,7 +68,7 @@ flowchart LR
 ## Frontend Responsibilities
 
 - `public/app.js`
-  Fetches homepage data, renders lead stories and sections, powers tabs, and opens grouped-coverage analysis views.
+  Fetches homepage data, renders lead stories and sections, powers tabs, opens grouped-coverage analysis views, and upgrades a story to live AI intelligence on demand.
 - `public/styles.css`
   Styles the dark newsroom-like UI for the main product surface.
 - `app.js`
@@ -75,3 +81,4 @@ flowchart LR
 - The repo intentionally does not commit `.env`.
 - Generated live payloads under `data/` are excluded from git.
 - The server auto-refreshes homepage discovery on an interval but remains usable without live credentials because the sample payload is bundled in source.
+- The AI path is provider-configured and time-bounded, while the frontend keeps a heuristic fallback available when live analysis fails.

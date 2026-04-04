@@ -2,6 +2,7 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { analyzeClusterWithCodex } from "./src/ai/codexStoryAnalysis.mjs";
 import { discoveryConfig } from "./src/ingest/config.mjs";
 import { getArticleMetadata } from "./src/ingest/articleMetadata.mjs";
 import { getCachedHome, runHomepageDiscovery } from "./src/ingest/discoveryAgent.mjs";
@@ -36,6 +37,18 @@ function decorateHome(home) {
     autoRefreshMinutes: discoveryConfig.autoRefreshMinutes,
     staleAfterMinutes: discoveryConfig.staleAfterMinutes,
   };
+}
+
+function findClusterById(home, clusterId) {
+  for (const section of Object.values(home?.sections || {})) {
+    for (const cluster of section.storyClusters || []) {
+      if (cluster.clusterId === clusterId) {
+        return { cluster, section };
+      }
+    }
+  }
+
+  return null;
 }
 
 async function refreshHome(reason = "scheduled") {
@@ -157,6 +170,38 @@ app.get("/api/article-preview", async (req, res) => {
   }
 });
 
+app.get("/api/ai/story", async (req, res) => {
+  const clusterId = typeof req.query.clusterId === "string" ? req.query.clusterId : "";
+
+  if (!clusterId) {
+    res.status(400).json({ ok: false, error: "Missing clusterId" });
+    return;
+  }
+
+  try {
+    const home = await getCachedHome();
+    const match = findClusterById(home, clusterId);
+
+    if (!match) {
+      res.status(404).json({ ok: false, error: "Cluster not found" });
+      return;
+    }
+
+    const analysis = await analyzeClusterWithCodex(match.cluster, match.section);
+    res.json({
+      ok: true,
+      provider: discoveryConfig.aiProvider,
+      clusterId,
+      analysis,
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error instanceof Error ? error.message : "AI analysis failed",
+    });
+  }
+});
+
 app.post("/api/refresh", async (_req, res) => {
   try {
     const home = await refreshHome("manual");
@@ -170,7 +215,7 @@ app.post("/api/refresh", async (_req, res) => {
 });
 
 app.listen(port, async () => {
-  console.log(`Zelthir prototype running at http://127.0.0.1:${port}/app/`);
+  console.log(`Zelthir running at http://127.0.0.1:${port}/app/`);
 
   try {
     const cached = await getCachedHome();

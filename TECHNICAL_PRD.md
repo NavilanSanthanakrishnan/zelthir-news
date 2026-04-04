@@ -1,7 +1,7 @@
 # Zelthir Technical PRD
 
 Date: April 4, 2026
-Stage: Hackathon MVP
+Stage: Production implementation baseline
 Owner: Team Zelthir
 
 ## 1. Product Summary
@@ -38,13 +38,13 @@ We should borrow the strongest ideas from MiroFish:
 - prediction as structured scenarios, not magic certainty
 - readable reports with confidence signals
 
-We should not build or depend on a literal MiroFish-style swarm simulation for the hackathon MVP because:
+We should not build or depend on a literal MiroFish-style swarm simulation for the initial production baseline because:
 
 - it adds major engineering and prompt complexity
 - it is hard to explain and validate in one day
 - judges will care more about clear value and working output than agent count
 
-MVP decision:
+Implementation decision:
 
 - use a `story graph + analog-based forecast` instead of a giant multi-agent social simulation
 - present prediction as `Likely Ripple Effects` and `What To Watch`
@@ -76,14 +76,14 @@ Zelthir solves this by:
 - Show one major story transformed from many articles into one structured event.
 - Make uncertainty visible instead of pretending certainty.
 - Give users a reason to return via personalized relevance.
-- Demonstrate real agentic workflow and real backend state for hackathon judging.
+- Demonstrate real agentic workflow and real backend state in the shipped product.
 
 ### Secondary Goals
 
 - Support voice or narrated briefing if time remains.
 - Support saved topics or followed entities if time remains.
 
-## 5. Non-Goals For MVP
+## 5. Non-Goals For Initial Release
 
 - Full social product
 - Live comments or community moderation
@@ -803,7 +803,7 @@ All model outputs must be structured and constrained.
 ## 22. Review Readiness Dashboard
 
 - Product framing: `Ready`
-- MVP scope: `Ready`
+- Initial release scope: `Ready`
 - Technical architecture: `Ready`
 - Data model: `Ready`
 - Prompt strategy: `Ready`
@@ -813,7 +813,7 @@ All model outputs must be structured and constrained.
 - Visual design system: `Needs execution`
 - Demo dataset prep: `Needs execution`
 
-## 23. Build Plan For Hackathon Day
+## 23. Implementation Phases
 
 ### Phase 1: Foundation
 

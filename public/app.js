@@ -294,6 +294,7 @@ const state = {
   sections: [],
   clustersById: new Map(),
   intelligenceCache: new Map(),
+  aiRequests: new Map(),
   activeClusterId: null,
   activePanel: "overview",
   activeAnalysisPanel: "summary",
@@ -1394,10 +1395,87 @@ function getStoryIntelligence(cluster, section) {
     rippleEffects: forecast.ripple,
     watchSignals: forecast.watch,
     sectionTitle: sectionLabels[section.id] || section.title,
+    aiSource: "heuristic",
   };
 
   state.intelligenceCache.set(cacheKey, intelligence);
   return intelligence;
+}
+
+function mergeAiIntelligence(base, aiAnalysis) {
+  return {
+    ...base,
+    headline: aiAnalysis.headline || base.headline,
+    brief: aiAnalysis.brief || base.brief,
+    confidence: aiAnalysis.confidence || base.confidence,
+    agreed: aiAnalysis.agreed?.length ? aiAnalysis.agreed : base.agreed,
+    disputes: aiAnalysis.disputes?.length ? aiAnalysis.disputes : base.disputes,
+    frames: aiAnalysis.frames?.length ? aiAnalysis.frames : base.frames,
+    rippleEffects:
+      aiAnalysis.rippleEffects &&
+      Object.values(aiAnalysis.rippleEffects).some((items) => items?.length)
+        ? aiAnalysis.rippleEffects
+        : base.rippleEffects,
+    watchSignals: aiAnalysis.watchSignals?.length ? aiAnalysis.watchSignals : base.watchSignals,
+    articleParagraphs:
+      aiAnalysis.articleParagraphs?.length ? aiAnalysis.articleParagraphs : base.articleParagraphs,
+    aiSource: aiAnalysis.provider || "codex-cli",
+  };
+}
+
+async function loadAiIntelligence(clusterId) {
+  if (!clusterId) {
+    return null;
+  }
+
+  const cached = state.intelligenceCache.get(clusterId);
+  if (cached?.aiSource && cached.aiSource !== "heuristic") {
+    return cached;
+  }
+
+  if (state.aiRequests.has(clusterId)) {
+    return state.aiRequests.get(clusterId);
+  }
+
+  if (state.activeClusterId === clusterId) {
+    briefConfidence.textContent = "Generating live AI analysis via Codex…";
+  }
+
+  const request = fetch(`/api/ai/story?clusterId=${encodeURIComponent(clusterId)}`)
+    .then((response) => (response.ok ? response.json() : null))
+    .then((payload) => {
+      if (!payload?.ok || !payload.analysis) {
+        return null;
+      }
+
+      const entry = state.clustersById.get(clusterId);
+      if (!entry) {
+        return null;
+      }
+
+      const base = getStoryIntelligence(entry.cluster, entry.section);
+      const merged = mergeAiIntelligence(base, payload.analysis);
+      state.intelligenceCache.set(clusterId, merged);
+
+      if (state.activeClusterId === clusterId) {
+        renderModal(clusterId, { skipAi: true });
+      }
+
+      return merged;
+    })
+    .catch(() => null)
+    .finally(() => {
+      state.aiRequests.delete(clusterId);
+      if (state.activeClusterId === clusterId) {
+        const latest = state.intelligenceCache.get(clusterId);
+        if (latest?.aiSource === "heuristic") {
+          briefConfidence.textContent = `Heuristic draft • Confidence ${latest.confidence}%`;
+        }
+      }
+    });
+
+  state.aiRequests.set(clusterId, request);
+  return request;
 }
 
 function getInterestScore(cluster, interests) {
@@ -2011,7 +2089,7 @@ function answerStoryQuestion(question, intelligence) {
   return getDefaultAnswer(intelligence);
 }
 
-function renderModal(clusterId) {
+function renderModal(clusterId, options = {}) {
   const entry = state.clustersById.get(clusterId);
   if (!entry) return;
 
@@ -2037,9 +2115,12 @@ function renderModal(clusterId) {
   modalArticles.textContent = `${cluster.articleCount} articles`;
   buildSourceLinks(modalSourceLinks, cluster.articles, 8);
 
-  renderArticleProse(buildZelthirArticle(cluster, intelligence));
+  renderArticleProse(intelligence.articleParagraphs?.length ? intelligence.articleParagraphs : buildZelthirArticle(cluster, intelligence));
   zelthirBrief.textContent = intelligence.brief;
-  briefConfidence.textContent = `Confidence ${intelligence.confidence}%`;
+  briefConfidence.textContent =
+    intelligence.aiSource && intelligence.aiSource !== "heuristic"
+      ? `AI via Codex CLI • Confidence ${intelligence.confidence}%`
+      : `Heuristic draft • Confidence ${intelligence.confidence}%`;
   renderLedger(
     claimLedger,
     intelligence.agreed,
@@ -2083,6 +2164,10 @@ function renderModal(clusterId) {
 
   coverageModal.hidden = false;
   document.body.classList.add("modal-open");
+
+  if (!options.skipAi) {
+    void loadAiIntelligence(clusterId);
+  }
 }
 
 function closeModal() {
