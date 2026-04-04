@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "provider", "generatedAt", "scope", "clusters"],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "provider": { "type": "string" },
+    "generatedAt": { "type": "string" },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["edition", "category", "description"],
+      "properties": {
+        "edition": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "clusters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "category",
+          "headline",
+          "whyItMatters",
+          "publishedAt",
+          "sourceCount",
+          "articleCount",
+          "confidence",
+          "rankScore",
+          "articles",
+          "commonFacts",
+          "disputedPoints",
+          "keywords"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "category": { "type": "string" },
+          "headline": { "type": "string" },
+          "whyItMatters": { "type": "string" },
+          "publishedAt": { "type": "string" },
+          "sourceCount": { "type": "number" },
+          "articleCount": { "type": "number" },
+          "confidence": { "type": "string" },
+          "rankScore": { "type": "number" },
+          "keywords": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "commonFacts": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "disputedPoints": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "articles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["source", "title", "url", "publishedAt", "notes", "excerpt"],
+              "properties": {
+                "source": { "type": "string" },
+                "title": { "type": "string" },
+                "url": { "type": "string" },
+                "publishedAt": { "type": "string" },
+                "notes": {
+                  "type": ["string", "null"]
+                },
+                "excerpt": {
+                  "type": ["string", "null"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

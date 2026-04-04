@@ -1,0 +1,5 @@
+.env
+node_modules
+.DS_Store
+data/latest-top-stories.json
+data/homepage-cache.json
