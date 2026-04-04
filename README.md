@@ -1,8 +1,15 @@
 # Zelthir
 
-Zelthir is a news intelligence prototype that groups overlapping reporting, builds a cleaner front page, and ships with a docs-style PRD viewer.
+Zelthir isis an AI news intelligence platform that reads coverage from across the media spectrum, groups articles about the same event, extracts the facts they agree on, flags disputed claims, and generates a source-backed brief of the best-supported account of what happened. Instead of pushing one outlet’s framing, it shows how different sources describe the same story, maps the connections between related events and actors, and highlights the likely ripple effects so users can understand not just the headline, but what it means and what may happen next.
 
 This workspace snapshot was assembled on April 4, 2026. The product spec in [TECHNICAL_PRD.md](./TECHNICAL_PRD.md) and the earliest file timestamps in this folder both point to that same build date.
+# How it Works
+- Live pulls news from various sources using APIs
+- AI live clusters them into the proper categories (e.g. which news article cluster its part of)
+- AI runs the algorthim, which does analysis, rewrites the article with factors of what it thinks is most true
+- AI shows you various perspectives of it
+- AI forms connections and shows you a timeline with previous articles
+- AI runs a predictive based on the current data (currently using own algorthm planned was mirofish), and predicts what can happen next
 
 ## What It Does
 
@@ -11,16 +18,13 @@ This workspace snapshot was assembled on April 4, 2026. The product spec in [TEC
 - Enriches articles with metadata like canonical URLs, images, and better snippets when possible.
 - Serves a readable PRD viewer at `/docs/index.html` for the product and architecture spec.
 - Boots without a live API key by falling back to bundled sample data, so the UI is still demoable locally.
+- Currently Using Codex O auth but can be changed to other API Keys
 
 ## Screenshots
 
 ### Homepage
 
 ![Zelthir homepage](docs/screenshots/zelthir-homepage.png)
-
-### PRD Viewer
-
-![Zelthir PRD viewer](docs/screenshots/prd-viewer.png)
 
 ## Quick Start
 
@@ -113,16 +117,11 @@ Notes:
 - `TECHNICAL_PRD.md`: the product spec source rendered by the docs viewer.
 
 ## Current Status
-
-- Stage: Hackathon MVP
-- Owner in spec: Team Zelthir
-- Package name: `zelthir`
 - GitHub repo target: `navilankrishnan/Zelthir`
 
 ## Limitations
 
 - There is no automated test suite in the repo yet.
-- Story clustering is heuristic, not model-based.
 - Freshness depends on third-party feeds and API limits.
 - Some publisher images may fail hotlinking, so the app includes image proxying and fallbacks.
 
