@@ -1,38 +1,120 @@
 # Zelthir
 
-Zelthir is an AI news intelligence platform with an agentic story analysis layer. It reads coverage from across the media spectrum, groups articles about the same event, extracts the facts multiple sources agree on, flags disputed claims, and generates a source-backed brief of the best-supported account of what happened. Instead of pushing one outlet's framing, it shows how different sources describe the same story, maps connections between related events and actors, and highlights likely ripple effects so users can understand not just the headline, but what it means and what may happen next.
+Zelthir is an AI news intelligence platform that reads coverage from across the media spectrum, groups articles about the same event, extracts the facts they agree on, flags disputed claims, and generates a source-backed brief of the best-supported account of what happened. Instead of pushing one outlet's framing, it shows how different sources describe the same story, maps the connections between related events and actors, and highlights likely ripple effects so users can understand not just the headline, but what it means and what may happen next.
 
-This workspace snapshot was assembled on April 4, 2026. The product spec in [TECHNICAL_PRD.md](./TECHNICAL_PRD.md) and the earliest file timestamps in this folder both point to that same build date.
+Zelthir combines a live news platform with an intelligence layer:
 
-## At a Glance
+- a homepage that clusters large volumes of coverage into story-level events
+- an AI-drafted story brief built from multi-source reporting
+- a claim ledger that separates supported claims from disputed ones
+- framing analysis across publisher coverage
+- a predictive layer that surfaces ripple effects and what to watch next
 
-- Zelthir pulls live coverage from multiple APIs and RSS feeds.
-- The ingestion and clustering pipeline groups related reporting into event-level story clusters.
-- Codex-backed analysis turns each cluster into a best-supported brief, agreement ledger, dispute ledger, framing breakdown, and ripple-effect watchlist.
-- The product surfaces multiple perspectives, source links, and story context rather than collapsing everything into one unsourced summary.
-- The UI can upgrade a story from heuristic intelligence to live AI intelligence on demand.
+## Platform Overview
 
-## What It Does
+Zelthir is built as a production-oriented Node and Express application with a multi-provider ingest pipeline, event clustering engine, metadata hydration layer, and Codex-backed structured analysis service.
 
-- Serves a live news intelligence homepage at `/app/` with a lead story, grouped coverage cards, and deeper analysis panels.
-- Pulls stories from NewsAPI, Google News RSS, and direct RSS feeds, then clusters related coverage into event-level story groups.
-- Enriches articles with canonical URLs, improved images, and stronger snippets when possible.
-- Generates source-backed story briefs, agreed facts, disputed claims, framing breakdowns, watch signals, and ripple effects.
-- Uses Codex-backed analysis on demand, with heuristic fallbacks so the UI remains usable when live AI is unavailable.
-- Serves a readable PRD viewer at `/docs/index.html` for the product and architecture spec.
+The repository currently ships:
 
-## Why It Is Agentic
+- live homepage discovery for U.S. and world coverage
+- multi-source clustering with article counts and source counts
+- image proxying and metadata recovery for better article cards
+- on-demand Codex-backed story analysis through the backend
+- a newsroom-style web UI with grouped article coverage and analysis tabs
+- internal product and architecture documentation served from the same app
 
-- The ingestion pipeline acts as a discovery agent that gathers and normalizes coverage from multiple providers.
-- The clustering layer turns raw articles into a story object that the intelligence layer can reason over.
-- The Codex analysis path generates structured story intelligence from the clustered evidence set instead of a single-article summary.
-- The UI upgrades a story from heuristic intelligence to live AI intelligence as soon as structured analysis is returned.
+## What Makes The Product Intelligent
 
-## Screenshots
+Zelthir does not summarize a single article. It constructs a story object from many related articles and uses that evidence set to generate structured intelligence.
 
-### Homepage
+For each story cluster, the intelligence layer can produce:
 
-![Zelthir homepage](docs/screenshots/zelthir-homepage.png)
+- `Grounded Brief`
+  A clean, AI-drafted account of what the reporting most strongly supports.
+- `Claim Ledger`
+  Key supported claims with linked source evidence.
+- `Disputed Claims`
+  Open questions, conflicts, and low-confidence details surfaced separately.
+- `Framing Matrix`
+  A view of how the same event is framed across outlets.
+- `Story Timeline`
+  A compact evolution of the event across reporting times.
+- `Ripple Effects`
+  Likely `24h`, `7d`, and `30d` consequences.
+- `What To Watch`
+  Signals that would strengthen or weaken the current assessment.
+
+## AI Stack
+
+The live AI path in this repository uses the local `codex` CLI as the structured intelligence provider.
+
+Current implementation:
+
+- `src/ai/codexStoryAnalysis.mjs` builds an evidence-constrained prompt from clustered coverage.
+- The backend runs `codex exec` and requests a strict JSON response.
+- The response is normalized into product-ready fields for the UI:
+  - headline
+  - brief
+  - drafted article paragraphs
+  - agreed claims
+  - disputed claims
+  - framing
+  - watch signals
+  - ripple effects
+- The frontend opens with a heuristic fallback and upgrades to live AI analysis when the Codex response returns.
+
+This means the app uses authenticated Codex access on the machine rather than embedding a static provider key in the frontend.
+
+## Predictive Intelligence
+
+Zelthir includes a predictive intelligence layer in the story view. Today that predictive layer is generated through Codex-backed structured analysis plus story-graph heuristics already in the application.
+
+What the current codebase does:
+
+- estimates likely near-term consequences for each major story
+- groups those consequences by `24h`, `7d`, and `30d`
+- surfaces watch signals that would confirm or weaken the current outlook
+- ties the forecast to the clustered evidence set rather than a single article
+
+What it does not currently do:
+
+- it does not run a separate MiroFish service
+- it does not ship a Neo4j-backed prediction backend in this repo
+
+If you want to integrate a dedicated prediction graph engine later, the current story-analysis contract is the right attachment point.
+
+## Architecture At A Glance
+
+```mermaid
+flowchart LR
+    A["NewsAPI / Google News / RSS"] --> B["Discovery Providers"]
+    B --> C["Deduplication + Clustering"]
+    C --> D["Metadata Hydration"]
+    C --> E["Codex Story Analysis"]
+    D --> F["Homepage Cache"]
+    E --> G["Structured Intelligence Payload"]
+    F --> H["Express API"]
+    G --> H
+    H --> I["/app News Platform"]
+    H --> J["/docs Product Docs"]
+```
+
+## Runtime Surfaces
+
+- `/app/`
+  The live news platform UI with lead coverage, grouped stories, and analysis views.
+- `/api/home`
+  Returns the cached homepage payload.
+- `/api/refresh`
+  Re-runs discovery and rewrites the cached homepage payload.
+- `/api/ai/story?clusterId=...`
+  Generates live Codex-backed intelligence for a selected story cluster.
+- `/api/image?url=...`
+  Proxies article imagery for more reliable rendering.
+- `/api/article-preview?url=...`
+  Fetches article metadata for fallback image and snippet recovery.
+- `/docs/index.html`
+  Serves the internal PRD and architecture surface.
 
 ## Quick Start
 
@@ -49,8 +131,6 @@ Open:
 
 ## Environment
 
-The app runs in degraded mode with no secrets. If you want fresher live discovery and live AI story analysis, set the relevant providers in `.env`.
-
 ```bash
 NEWS_API_KEY=
 DISCOVERY_PROVIDER=newsapi
@@ -66,41 +146,26 @@ AI_TIMEOUT_MS=90000
 
 Notes:
 
-- If `NEWS_API_KEY` is empty, the server still works and can render bundled sample data.
-- `DISCOVERY_PROVIDER=rss` forces an RSS-first mode.
-- `AI_PROVIDER=codex-cli` enables live story intelligence generation through the Codex CLI.
-- If the AI provider is unavailable, Zelthir falls back to heuristic story intelligence in the UI.
-- Cached live payloads are treated as generated runtime data and are not committed.
+- If `NEWS_API_KEY` is empty, discovery falls back to Google News and direct RSS sources.
+- `AI_PROVIDER=codex-cli` enables live story analysis through the locally authenticated Codex CLI.
+- If Codex is unavailable, the UI still renders via heuristic story intelligence.
+- Runtime cache files under `data/` are generated artifacts and are not committed.
 
-## Scripts
-
-- `npm run dev` starts the local Express server.
-- `npm run start` starts the production-mode server.
-- `npm run ingest` runs one homepage discovery pass and prints the payload JSON.
-
-## Project Layout
+## Project Structure
 
 ```text
 .
+|-- README.md
 |-- TECHNICAL_PRD.md
-|-- app.js
-|-- index.html
 |-- server.mjs
-|-- styles.css
 |-- public/
-|   |-- app.js
 |   |-- index.html
+|   |-- app.js
 |   `-- styles.css
-|-- schemas/
-|   |-- story-analysis.schema.json
-|   `-- top-stories.schema.json
-|-- scripts/
-|   `-- run-ingest.mjs
 |-- src/
 |   |-- ai/
 |   |   `-- codexStoryAnalysis.mjs
 |   `-- ingest/
-|       |-- articleExtractor.mjs
 |       |-- articleMetadata.mjs
 |       |-- clusterEngine.mjs
 |       |-- config.mjs
@@ -108,52 +173,29 @@ Notes:
 |       |-- googleNewsProvider.mjs
 |       |-- homeSample.mjs
 |       |-- newsApiProvider.mjs
-|       |-- rssDiscovery.mjs
 |       |-- rssProvider.mjs
 |       `-- sourceRegistry.mjs
-`-- docs/
-    |-- ARCHITECTURE.md
-    `-- screenshots/
+|-- docs/
+|   |-- ARCHITECTURE.md
+|   `-- README.md
+`-- schemas/
 ```
 
-## How It Works
+## Operational Notes
 
-1. `server.mjs` serves the homepage UI, the PRD viewer, and API endpoints like `/api/home`, `/api/refresh`, `/api/image`, and `/api/ai/story`.
-2. `src/ingest/discoveryAgent.mjs` coordinates section discovery for U.S. and world news.
-3. Providers in `src/ingest/` fetch seeds from NewsAPI, Google News, and curated RSS feeds.
-4. `clusterEngine.mjs` deduplicates articles and groups similar coverage into story clusters.
-5. `src/ai/codexStoryAnalysis.mjs` turns a cluster into structured intelligence through Codex and normalizes the result for the UI.
-6. `articleMetadata.mjs` resolves Google News links and hydrates better metadata when possible.
-7. The frontend in `public/` renders grouped coverage, layered intelligence panels, and on-demand AI analysis, while the root `index.html` view renders the technical PRD.
+- The server automatically refreshes homepage discovery on a time interval.
+- Homepage rendering continues to work through cached payloads when upstream providers are unavailable.
+- Story analysis is requested on demand so the platform can keep the homepage fast while still exposing deeper AI analysis per story.
+- The image pipeline includes proxying and metadata fallback because many publishers block direct hotlinking.
 
-## Main Surfaces
+## Current Boundaries
 
-- `/app/`: the live Zelthir homepage with grouped coverage, tabs, relevance controls, and analysis panels.
-- `/docs/index.html`: a polished viewer for the markdown PRD.
-- `TECHNICAL_PRD.md`: the product spec source rendered by the docs viewer.
+- Story clustering is heuristic rather than embedding-native.
+- The predictive layer is AI-generated and structured, but it is not yet powered by a separate graph-runtime service such as MiroFish.
+- There is no automated test suite in the repository yet.
 
-## Current Status
+## Documentation
 
-- Stage: Team-facing internal release
-- Owner in spec: Team Zelthir
-- Package name: `zelthir`
-- GitHub repo: `NavilanSanthanakrishnan/ZelthirApp`
-- Intelligence stack: multi-source ingestion, event clustering, Codex-backed story analysis, and heuristic fallback rendering
-
-## Production Notes
-
-- `npm run start` boots the production-mode Express server used for team and deployment environments.
-- Refresh cadence, cache staleness, provider selection, and AI timeout behavior are configurable through environment variables.
-- Zelthir keeps the product surface available when live feeds or live AI are unavailable by degrading to cached or bundled intelligence.
-- The server exposes explicit endpoints for homepage data, manual refresh, image proxying, article preview hydration, and on-demand AI story analysis.
-
-## Limitations
-
-- There is no automated test suite in the repo yet.
-- Story clustering remains heuristic rather than fully model-native.
-- Freshness depends on third-party feeds and API limits.
-- Some publisher images may fail hotlinking, so the app includes image proxying and fallbacks.
-
-## More Detail
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a concise code and data-flow walkthrough.
+- [Architecture](/Users/navilan/Documents/AIInfraPlan/docs/ARCHITECTURE.md)
+- [Docs README](/Users/navilan/Documents/AIInfraPlan/docs/README.md)
+- [Technical PRD](/Users/navilan/Documents/AIInfraPlan/TECHNICAL_PRD.md)

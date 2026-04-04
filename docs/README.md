@@ -1,20 +1,31 @@
-# Docs
+# Zelthir Docs
 
-This folder contains the internal product and architecture docs for Zelthir.
+This directory contains the product-facing technical documentation for Zelthir.
 
-## Files
+## Included Documents
 
 - `ARCHITECTURE.md`
-  High-level data flow and runtime notes
+  System architecture, data flow, runtime components, AI path, and operational behavior.
 - `screenshots/`
-  Local screenshots captured during the build
+  Local screenshots captured during development and verification.
 
-## Viewer
+## In-App Docs Surface
 
-The PRD viewer is served from the root docs surface:
+The repository serves its own docs viewer at:
 
 - `http://127.0.0.1:3210/docs/index.html`
 
-It renders the markdown source from:
+That viewer renders the source PRD from:
 
 - `TECHNICAL_PRD.md`
+
+## Scope
+
+These docs are meant to describe the current Zelthir platform as implemented in this repository:
+
+- live news ingestion and clustering
+- newsroom UI
+- Codex-backed story intelligence
+- predictive watch-signal and ripple-effect generation
+
+They do not document a separate MiroFish runtime because that integration is not currently part of the shipped codebase.
