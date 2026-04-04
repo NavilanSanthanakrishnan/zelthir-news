@@ -1,0 +1,19 @@
+{
+  "name": "zelthir",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "NODE_ENV=production node server.mjs",
+    "ingest": "node scripts/run-ingest.mjs"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "google-news-decoder": "^1.0.1",
+    "jsdom": "^26.1.0",
+    "rss-parser": "^3.13.0"
+  }
+}

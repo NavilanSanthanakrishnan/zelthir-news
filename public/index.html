@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zelthir | Live Clustered News</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23cf2237'/%3E%3Cpath d='M15 47V17h8l16 18V17h10v30h-8L25 30v17h-10Z' fill='%23fffaf3'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="masthead">
+        <div class="masthead__top">
+          <a class="brand" href="#top">
+            <span class="brand__mark">Zelthir</span>
+            <span class="brand__tag">Grouped coverage. Zelthir intelligence.</span>
+          </a>
+
+          <nav class="main-nav">
+            <a href="#top">Home</a>
+            <a href="#contentDeck" data-panel-target="overview">Top</a>
+            <a href="#contentDeck" data-panel-target="personalized">For You</a>
+            <a href="#contentDeck" data-panel-target="usa">USA</a>
+            <a href="#contentDeck" data-panel-target="world">World</a>
+            <a href="#contentDeck" data-panel-target="engine">Analysis</a>
+            <a href="/docs/index.html" target="_blank" rel="noreferrer">PRD</a>
+          </nav>
+
+          <button id="refreshButton" class="refresh-button" type="button">Refresh</button>
+        </div>
+
+        <div class="masthead__meta">
+          <span class="meta-pill">Provider: <strong id="providerLabel">Loading</strong></span>
+          <span class="meta-pill">Updated: <strong id="generatedAtLabel">Loading</strong></span>
+          <span class="meta-pill">Mode: <strong id="refreshModeLabel">Auto + Cached</strong></span>
+        </div>
+      </header>
+
+      <section class="ticker" aria-label="Trending coverage">
+        <span class="ticker__label">Live</span>
+        <div class="ticker__track" id="tickerTrack">
+          <span class="ticker__empty">Loading the latest coverage clusters...</span>
+        </div>
+      </section>
+
+      <main>
+        <section class="hero-layout" id="top">
+          <article class="lead-card">
+            <div class="lead-card__media">
+              <img id="leadImage" class="lead-card__image" alt="" hidden />
+              <div id="leadPlaceholder" class="lead-card__placeholder">Zelthir</div>
+            </div>
+
+            <div class="lead-card__body">
+              <div class="story-kicker-row">
+                <span id="leadStatus" class="status-pill" hidden>Live</span>
+                <span id="leadSection" class="kicker">Live Desk</span>
+              </div>
+
+              <h1 id="leadTitle" class="lead-card__title">Loading lead story...</h1>
+              <p id="leadSummary" class="lead-card__summary">
+                We are building the front page from grouped reporting across multiple publishers.
+              </p>
+              <p id="leadWhy" class="lead-card__why">
+                The biggest, freshest cluster across the current news cycle shows up here.
+              </p>
+
+              <div class="stats-row">
+                <span id="leadUpdated" class="meta-chip">Unknown</span>
+                <span id="leadSources" class="meta-chip">0 sources</span>
+                <span id="leadArticles" class="meta-chip">0 articles</span>
+              </div>
+
+              <div id="leadSourceLinks" class="source-links"></div>
+
+              <div class="lead-card__actions">
+                <button id="leadCoverageButton" class="coverage-button" type="button">
+                  Open grouped coverage
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <aside class="live-rail">
+            <div class="rail-header">
+              <div>
+                <p class="kicker">Live Feed</p>
+                <h2>Latest News</h2>
+              </div>
+              <p id="providerNote" class="rail-note">
+                Pulling the latest homepage payload now.
+              </p>
+            </div>
+            <div id="liveRail" class="live-rail__list">
+              <div class="empty-state">Loading the latest live clusters...</div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="snapshot-grid" aria-label="Homepage metrics">
+          <article class="snapshot-card">
+            <span class="snapshot-card__label">Sections</span>
+            <strong id="sectionCountLabel">0</strong>
+          </article>
+          <article class="snapshot-card">
+            <span class="snapshot-card__label">Clusters</span>
+            <strong id="clusterCountLabel">0</strong>
+          </article>
+          <article class="snapshot-card">
+            <span class="snapshot-card__label">Article Pool</span>
+            <strong id="articlePoolCountLabel">0</strong>
+          </article>
+          <article class="snapshot-card">
+            <span class="snapshot-card__label">Lead Coverage</span>
+            <strong id="leadCoverageLabel">0 sources</strong>
+          </article>
+        </section>
+
+        <section class="content-deck" id="contentDeck">
+          <div class="content-deck__top">
+            <div>
+              <p class="kicker">Zelthir Workspace</p>
+              <h2 class="content-deck__title">Evidence-backed news, organized by intent</h2>
+            </div>
+            <p class="content-deck__copy">
+              Zelthir turns conflicting news coverage into one Zelthir brief, a map of competing
+              perspectives, and a forecast of what to watch next.
+            </p>
+          </div>
+
+          <div class="content-deck__manifest">
+            <span class="meta-pill">Zelthir Brief</span>
+            <span class="meta-pill">Claim Ledger</span>
+            <span class="meta-pill">Perspective Map</span>
+            <span class="meta-pill">Ripple Effects</span>
+          </div>
+
+          <div id="workspaceTabs" class="tab-strip" role="tablist" aria-label="Zelthir sections">
+            <button class="tab-pill is-active" type="button" data-panel="overview" aria-selected="true">
+              <span>Top</span>
+              <span class="tab-pill__count" id="overviewCount">0</span>
+            </button>
+            <button class="tab-pill" type="button" data-panel="personalized" aria-selected="false">
+              <span>For You</span>
+              <span class="tab-pill__count" id="personalizedCount">0</span>
+            </button>
+            <button class="tab-pill" type="button" data-panel="usa" aria-selected="false">
+              <span>USA</span>
+              <span class="tab-pill__count" id="usaCount">0</span>
+            </button>
+            <button class="tab-pill" type="button" data-panel="world" aria-selected="false">
+              <span>World</span>
+              <span class="tab-pill__count" id="worldCount">0</span>
+            </button>
+            <button class="tab-pill" type="button" data-panel="engine" aria-selected="false">
+              <span>Engine</span>
+            </button>
+          </div>
+
+          <div class="workspace-panels">
+            <section class="workspace-panel is-active" id="overviewPanel" data-panel="overview">
+              <section class="digest-section panel-section" id="digest">
+                <div class="section-heading">
+                  <div>
+                    <p class="kicker">More Stories</p>
+                    <h2>More Stories</h2>
+                  </div>
+                  <p class="section-note">
+                    Open any story to inspect the grouped reporting, AI brief, coverage split, connections, and forecast.
+                  </p>
+                </div>
+
+                <div id="digestGrid" class="digest-grid">
+                  <div class="empty-state">Building the top grouped coverage cards...</div>
+                </div>
+              </section>
+            </section>
+
+            <section class="workspace-panel" id="personalizedPanel" data-panel="personalized" hidden>
+              <section class="personalized-section panel-section" id="explore">
+                <div class="section-heading">
+                  <div>
+                    <p class="kicker">For You</p>
+                    <h2>Personalized news intelligence</h2>
+                  </div>
+                  <p class="section-note">
+                    Tune the lens and Zelthir will surface stories with stronger relevance, impact, and
+                    forecast signals for that profile.
+                  </p>
+                </div>
+
+                <div class="personalized-controls">
+                  <label class="control">
+                    <span class="control__label">Location</span>
+                    <select id="locationSelect" class="control__select">
+                      <option value="sf">San Francisco</option>
+                      <option value="dc">Washington, DC</option>
+                      <option value="nyc">New York</option>
+                      <option value="global">Global</option>
+                    </select>
+                  </label>
+
+                  <label class="control">
+                    <span class="control__label">Role</span>
+                    <select id="roleSelect" class="control__select">
+                      <option value="founder">Founder</option>
+                      <option value="engineer">Engineer</option>
+                      <option value="investor">Investor</option>
+                      <option value="resident">Local Resident</option>
+                      <option value="student">Student</option>
+                    </select>
+                  </label>
+
+                  <div class="control control--interests">
+                    <span class="control__label">Interests</span>
+                    <div id="interestChips" class="interest-chips">
+                      <button class="interest-chip is-active" type="button" data-interest="tech">Tech</button>
+                      <button class="interest-chip is-active" type="button" data-interest="ai">AI</button>
+                      <button class="interest-chip is-active" type="button" data-interest="politics">Politics</button>
+                      <button class="interest-chip" type="button" data-interest="markets">Markets</button>
+                      <button class="interest-chip" type="button" data-interest="security">Security</button>
+                      <button class="interest-chip" type="button" data-interest="climate">Climate</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="personalizedGrid" class="personalized-grid">
+                  <div class="empty-state">Building your personalized intelligence feed...</div>
+                </div>
+              </section>
+            </section>
+
+            <section class="workspace-panel" id="usaPanel" data-panel="usa" hidden>
+              <div id="usaSectionHost" class="section-stack section-stack--single">
+                <div class="empty-state">Loading USA grouped coverage...</div>
+              </div>
+            </section>
+
+            <section class="workspace-panel" id="worldPanel" data-panel="world" hidden>
+              <div id="worldSectionHost" class="section-stack section-stack--single">
+                <div class="empty-state">Loading world grouped coverage...</div>
+              </div>
+            </section>
+
+            <section class="workspace-panel" id="enginePanel" data-panel="engine" hidden>
+              <section id="engine" class="engine-section panel-section">
+                <div class="section-heading">
+                  <div>
+                    <p class="kicker">Pipeline</p>
+                    <h2>How this front page is assembled</h2>
+                  </div>
+                  <p class="section-note">
+                    MiroFish-style forecasting is implemented locally through our own graph, framing, and
+                    ripple-effects layer, not through a direct MiroFish API.
+                  </p>
+                </div>
+
+                <div class="engine-grid">
+                  <article class="engine-card">
+                    <h3>1. Discover</h3>
+                    <p>Pull a large live article pool from Google News expansion and direct publisher feeds.</p>
+                  </article>
+                  <article class="engine-card">
+                    <h3>2. Dedupe</h3>
+                    <p>Collapse repeated URLs, source rewrites, and low-signal coverage before grouping.</p>
+                  </article>
+                  <article class="engine-card">
+                    <h3>3. Group</h3>
+                    <p>Cluster same-event reporting with title, snippet, source, and timing overlap.</p>
+                  </article>
+                  <article class="engine-card">
+                    <h3>4. Explain</h3>
+                    <p>Generate the Zelthir brief, perspective matrix, connection graph, and watch signals.</p>
+                  </article>
+                </div>
+              </section>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="coverageModal" class="coverage-modal" hidden>
+      <div id="coverageBackdrop" class="coverage-modal__backdrop"></div>
+      <section class="coverage-modal__panel" aria-modal="true" role="dialog" aria-labelledby="modalTitle">
+        <button id="coverageClose" class="coverage-close" type="button" aria-label="Close coverage">
+          Close
+        </button>
+
+        <div class="coverage-modal__grid">
+          <article class="coverage-lead">
+            <div class="coverage-lead__media">
+              <img id="modalImage" class="coverage-lead__image" alt="" hidden />
+              <div id="modalPlaceholder" class="coverage-lead__placeholder">Clustered Coverage</div>
+            </div>
+
+            <div class="coverage-lead__body">
+              <div class="story-kicker-row">
+                <span id="modalStatus" class="status-pill" hidden>Live</span>
+                <span id="modalSection" class="kicker">Section</span>
+              </div>
+              <h2 id="modalTitle" class="coverage-lead__title">Loading story...</h2>
+              <p id="modalSummary" class="coverage-lead__summary"></p>
+              <p id="modalWhy" class="coverage-lead__why"></p>
+
+              <div class="stats-row">
+                <span id="modalUpdated" class="meta-chip">Unknown</span>
+                <span id="modalSources" class="meta-chip">0 sources</span>
+                <span id="modalArticles" class="meta-chip">0 articles</span>
+              </div>
+
+              <div id="modalSourceLinks" class="source-links"></div>
+            </div>
+          </article>
+
+          <aside class="coverage-list">
+            <div class="coverage-list__header">
+              <div>
+                <p class="kicker">Grouped Reporting</p>
+                <h3>All similar articles</h3>
+              </div>
+              <p class="coverage-list__copy">
+                Direct and trusted sources are surfaced first so the grouping is easier to inspect.
+              </p>
+            </div>
+            <div id="modalArticlesList" class="coverage-list__items"></div>
+          </aside>
+        </div>
+
+        <div id="analysisTabs" class="analysis-tabs" role="tablist" aria-label="Story analysis tabs">
+          <button class="analysis-tab is-active" type="button" data-analysis-panel="summary" aria-selected="true">
+            AI Summary
+          </button>
+          <button class="analysis-tab" type="button" data-analysis-panel="coverage" aria-selected="false">
+            Coverage
+          </button>
+          <button class="analysis-tab" type="button" data-analysis-panel="connections" aria-selected="false">
+            Connections
+          </button>
+          <button class="analysis-tab" type="button" data-analysis-panel="prediction" aria-selected="false">
+            Prediction
+          </button>
+        </div>
+
+        <div class="analysis-panels">
+          <section class="analysis-panel is-active" id="summaryPanel" data-analysis-panel="summary">
+            <div class="intel-grid">
+              <article class="intel-card intel-card--brief">
+                <p class="kicker">Best-Supported Account</p>
+                <div class="intel-card__header">
+                  <h3>Zelthir Brief</h3>
+                  <span id="briefConfidence" class="meta-chip">Confidence pending</span>
+                </div>
+                <div id="zelthirArticle" class="article-prose"></div>
+                <p id="zelthirBrief" class="intel-copy">
+                  The source-backed brief will appear here once a story cluster is selected.
+                </p>
+              </article>
+
+              <article class="intel-card">
+                <p class="kicker">Consensus</p>
+                <h3>Claim Ledger</h3>
+                <div id="claimLedger" class="ledger-list"></div>
+              </article>
+
+              <article class="intel-card">
+                <p class="kicker">Disputes</p>
+                <h3>Open Questions</h3>
+                <div id="disputedClaims" class="ledger-list"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="analysis-panel" id="coveragePanel" data-analysis-panel="coverage" hidden>
+            <div class="intel-grid">
+              <article class="intel-card">
+                <p class="kicker">Bias Snapshot</p>
+                <h3>Coverage Split</h3>
+                <p id="coverageSplitSummary" class="intel-copy"></p>
+                <div id="coverageSplitColumns" class="coverage-split-grid"></div>
+              </article>
+
+              <article class="intel-card">
+                <p class="kicker">Perspectives</p>
+                <h3>Framing Matrix</h3>
+                <div id="framingMatrix" class="framing-list"></div>
+              </article>
+
+              <article class="intel-card">
+                <p class="kicker">Primary Signals</p>
+                <h3>Primary Source Layer</h3>
+                <div id="primarySourceLayer" class="ledger-list"></div>
+              </article>
+
+              <article class="intel-card">
+                <p class="kicker">Source Diversity</p>
+                <h3>Undercovered Source Mix</h3>
+                <div id="undercoveredMix" class="ledger-list"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="analysis-panel" id="connectionsPanel" data-analysis-panel="connections" hidden>
+            <div class="intel-grid">
+              <article class="intel-card intel-card--graph">
+                <p class="kicker">Connections</p>
+                <h3>Event Map</h3>
+                <svg id="connectionGraph" class="graph-canvas" viewBox="0 0 520 320" role="img" aria-label="Story connection graph"></svg>
+              </article>
+
+              <article class="intel-card intel-card--timeline">
+                <p class="kicker">Evolution</p>
+                <h3>Story Timeline</h3>
+                <div id="storyTimeline" class="timeline-list"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="analysis-panel" id="predictionPanel" data-analysis-panel="prediction" hidden>
+            <div class="forecast-grid">
+              <article class="intel-card forecast-card">
+                <p class="kicker">Forecast</p>
+                <h3>Ripple Effects</h3>
+                <div id="rippleEffects" class="forecast-columns"></div>
+              </article>
+
+              <article class="intel-card">
+                <p class="kicker">Signals</p>
+                <h3>What To Watch</h3>
+                <div id="watchSignals" class="watch-list"></div>
+              </article>
+            </div>
+
+            <article class="intel-card ask-card">
+              <div class="intel-card__header">
+                <div>
+                  <p class="kicker">Ask This Story</p>
+                  <h3>Zelthir Q&A</h3>
+                </div>
+              </div>
+              <form id="askStoryForm" class="ask-form">
+                <input
+                  id="askStoryInput"
+                  class="ask-input"
+                  type="text"
+                  placeholder="Ask what changed, what is disputed, or what to watch next"
+                />
+                <button class="coverage-button" type="submit">Ask</button>
+              </form>
+              <div id="askStoryAnswer" class="ask-answer">
+                Ask a story question and Zelthir will answer from the grouped evidence.
+              </div>
+            </article>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <template id="tickerItemTemplate">
+      <button class="ticker__item" type="button">
+        <span class="ticker__item-text"></span>
+      </button>
+    </template>
+
+    <template id="railItemTemplate">
+      <article class="rail-card">
+        <div class="rail-card__media">
+          <img class="rail-card__image" alt="" hidden />
+          <div class="rail-card__placeholder">Zelthir</div>
+        </div>
+        <div class="rail-card__body">
+        <div class="story-kicker-row">
+          <span class="status-pill rail-card__status" hidden>Live</span>
+          <span class="kicker rail-card__section"></span>
+        </div>
+        <h3 class="rail-card__title"></h3>
+        <p class="rail-card__summary"></p>
+        <div class="stats-row">
+          <span class="meta-chip rail-card__updated"></span>
+          <span class="meta-chip rail-card__sources"></span>
+        <span class="meta-chip rail-card__articles"></span>
+        </div>
+        <div class="source-links rail-card__sources-list"></div>
+        <button class="coverage-button rail-card__button" type="button">Open coverage</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="digestCardTemplate">
+      <article class="digest-card">
+        <div class="digest-card__media">
+          <img class="digest-card__image" alt="" hidden />
+          <div class="digest-card__placeholder">Zelthir</div>
+        </div>
+        <div class="digest-card__body">
+          <div class="story-kicker-row">
+            <span class="status-pill digest-card__status" hidden>Live</span>
+            <span class="kicker digest-card__section"></span>
+          </div>
+          <h3 class="digest-card__title"></h3>
+          <p class="digest-card__summary"></p>
+          <div class="stats-row">
+            <span class="meta-chip digest-card__updated"></span>
+            <span class="meta-chip digest-card__sources"></span>
+            <span class="meta-chip digest-card__articles"></span>
+          </div>
+          <div class="digest-card__footer">
+            <div class="source-links digest-card__source-links"></div>
+            <button class="coverage-button digest-card__button" type="button">Open analysis</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <template id="personalizedCardTemplate">
+      <article class="personal-card">
+        <div class="story-kicker-row">
+          <span class="status-pill personal-card__status" hidden>Live</span>
+          <span class="kicker personal-card__section"></span>
+        </div>
+        <h3 class="personal-card__title"></h3>
+        <p class="personal-card__summary"></p>
+        <div class="personal-card__why" data-role-copy></div>
+        <div class="stats-row">
+          <span class="meta-chip personal-card__updated"></span>
+          <span class="meta-chip personal-card__sources"></span>
+          <span class="meta-chip personal-card__articles"></span>
+        </div>
+        <div class="source-links personal-card__sources-list"></div>
+        <button class="coverage-button personal-card__button" type="button">Open story intelligence</button>
+      </article>
+    </template>
+
+    <template id="homepageSectionTemplate">
+      <section class="news-section">
+        <div class="section-heading">
+          <div>
+            <p class="kicker section-kicker"></p>
+            <h2 class="section-title"></h2>
+          </div>
+          <p class="section-note section-note--stats"></p>
+        </div>
+
+        <div class="news-section__layout">
+          <article class="section-feature">
+            <div class="section-feature__media">
+              <img class="section-feature__image" alt="" hidden />
+              <div class="section-feature__placeholder">Zelthir</div>
+            </div>
+            <div class="section-feature__body">
+              <div class="story-kicker-row">
+                <span class="status-pill section-feature__status" hidden>Live</span>
+                <span class="kicker section-feature__kicker"></span>
+              </div>
+              <h3 class="section-feature__title"></h3>
+              <p class="section-feature__summary"></p>
+              <p class="section-feature__why"></p>
+              <div class="stats-row">
+                <span class="meta-chip section-feature__updated"></span>
+                <span class="meta-chip section-feature__sources"></span>
+                <span class="meta-chip section-feature__articles"></span>
+              </div>
+              <div class="source-links section-feature__source-links"></div>
+              <button class="coverage-button section-feature__button" type="button">
+                Open grouped coverage
+              </button>
+            </div>
+          </article>
+
+          <div class="section-list"></div>
+        </div>
+      </section>
+    </template>
+
+    <template id="storyListItemTemplate">
+      <article class="story-card">
+        <div class="story-card__media">
+          <img class="story-card__image" alt="" hidden />
+          <div class="story-card__placeholder">Zelthir</div>
+        </div>
+        <div class="story-card__body">
+          <div class="story-kicker-row">
+            <span class="status-pill story-card__status" hidden>Live</span>
+            <span class="kicker story-card__section"></span>
+          </div>
+          <h3 class="story-card__title"></h3>
+          <p class="story-card__summary"></p>
+          <div class="stats-row">
+            <span class="meta-chip story-card__updated"></span>
+            <span class="meta-chip story-card__sources"></span>
+            <span class="meta-chip story-card__articles"></span>
+          </div>
+          <div class="source-links story-card__source-links"></div>
+          <button class="coverage-button story-card__button" type="button">View grouped coverage</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="modalArticleItemTemplate">
+      <article class="article-row">
+        <div class="article-row__copy">
+          <div class="story-kicker-row">
+            <span class="kicker article-row__source"></span>
+            <span class="article-row__time"></span>
+          </div>
+          <h4 class="article-row__title"></h4>
+          <p class="article-row__summary"></p>
+        </div>
+        <a class="article-row__link" target="_blank" rel="noreferrer">Open</a>
+      </article>
+    </template>
+
+    <template id="ledgerItemTemplate">
+      <article class="ledger-item">
+        <div class="ledger-item__copy">
+          <h4 class="ledger-item__title"></h4>
+          <p class="ledger-item__meta"></p>
+        </div>
+        <div class="source-links ledger-item__sources"></div>
+      </article>
+    </template>
+
+    <template id="frameItemTemplate">
+      <article class="frame-item">
+        <div class="frame-item__top">
+          <span class="frame-item__label"></span>
+          <span class="frame-item__value"></span>
+        </div>
+        <div class="frame-item__bar">
+          <span class="frame-item__fill"></span>
+        </div>
+      </article>
+    </template>
+
+    <template id="coverageBucketTemplate">
+      <article class="coverage-bucket">
+        <div class="coverage-bucket__top">
+          <h4 class="coverage-bucket__title"></h4>
+          <span class="coverage-bucket__count"></span>
+        </div>
+        <p class="coverage-bucket__meta"></p>
+        <div class="source-links coverage-bucket__sources"></div>
+      </article>
+    </template>
+
+    <template id="timelineItemTemplate">
+      <article class="timeline-item">
+        <div class="timeline-item__time"></div>
+        <div class="timeline-item__content">
+          <h4 class="timeline-item__title"></h4>
+          <p class="timeline-item__meta"></p>
+        </div>
+      </article>
+    </template>
+
+    <template id="forecastColumnTemplate">
+      <article class="forecast-column">
+        <h4 class="forecast-column__title"></h4>
+        <div class="watch-list forecast-column__list"></div>
+      </article>
+    </template>
+
+    <template id="watchItemTemplate">
+      <article class="watch-item">
+        <h4 class="watch-item__title"></h4>
+        <p class="watch-item__copy"></p>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
