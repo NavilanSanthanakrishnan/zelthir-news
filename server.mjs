@@ -214,9 +214,7 @@ app.post("/api/refresh", async (_req, res) => {
   }
 });
 
-app.listen(port, async () => {
-  console.log(`Zelthir running at http://127.0.0.1:${port}/app/`);
-
+async function warmHomeCache() {
   try {
     const cached = await getCachedHome();
     if (
@@ -229,8 +227,17 @@ app.listen(port, async () => {
   } catch (error) {
     console.error("Startup discovery failed:", error);
   }
-});
+}
 
-setInterval(() => {
-  void refreshHome("interval");
-}, autoRefreshMs);
+if (!process.env.VERCEL) {
+  app.listen(port, async () => {
+    console.log(`Zelthir running at http://127.0.0.1:${port}/app/`);
+    await warmHomeCache();
+  });
+
+  setInterval(() => {
+    void refreshHome("interval");
+  }, autoRefreshMs);
+}
+
+export default app;
