@@ -135,6 +135,6 @@ export async function runHomepageDiscovery() {
     ),
   };
 
-  await writeCache(payload);
+  await writeCache(payload).catch(() => {});
   return payload;
 }

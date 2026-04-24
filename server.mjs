@@ -39,6 +39,24 @@ function decorateHome(home) {
   };
 }
 
+function countClusterImages(home) {
+  return Object.values(home?.sections || {}).reduce((total, section) => {
+    return (
+      total +
+      (section.storyClusters || []).filter((cluster) => Boolean(cluster.imageUrl)).length
+    );
+  }, 0);
+}
+
+function shouldRefreshBeforeResponding(home) {
+  return (
+    process.env.VERCEL &&
+    (home?.provider === "sample" ||
+      !home?.sections?.usaDailyBriefing?.storyClusters?.length ||
+      countClusterImages(home) < 3)
+  );
+}
+
 function findClusterById(home, clusterId) {
   for (const section of Object.values(home?.sections || {})) {
     for (const cluster of section.storyClusters || []) {
@@ -82,7 +100,10 @@ app.get("/", (_req, res) => {
 });
 
 app.get("/api/home", async (_req, res) => {
-  const home = await getCachedHome();
+  let home = await getCachedHome();
+  if (shouldRefreshBeforeResponding(home)) {
+    home = await refreshHome("request");
+  }
   await ensureFreshHome(home);
   res.json(decorateHome(home));
 });
