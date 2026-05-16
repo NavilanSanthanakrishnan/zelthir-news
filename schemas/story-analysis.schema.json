@@ -60,6 +60,93 @@
       },
       "maxItems": 4
     },
+    "topic_map": {
+      "type": "object",
+      "properties": {
+        "center": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "label": { "type": "string" },
+            "summary": { "type": "string" }
+          },
+          "required": ["id", "label", "summary"],
+          "additionalProperties": false
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "actor",
+                  "place",
+                  "policy",
+                  "public_safety",
+                  "economy",
+                  "culture",
+                  "sport",
+                  "health",
+                  "education",
+                  "climate",
+                  "technology",
+                  "legal",
+                  "community",
+                  "unknown"
+                ]
+              },
+              "summary": { "type": "string" },
+              "weight": { "type": "integer", "minimum": 0, "maximum": 100 },
+              "source_names": {
+                "type": "array",
+                "items": { "type": "string" },
+                "maxItems": 4
+              }
+            },
+            "required": ["id", "label", "type", "summary", "weight", "source_names"],
+            "additionalProperties": false
+          },
+          "maxItems": 8
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": { "type": "string" },
+              "target": { "type": "string" },
+              "relationship": {
+                "type": "string",
+                "enum": [
+                  "causes",
+                  "responds_to",
+                  "depends_on",
+                  "escalates",
+                  "constrains",
+                  "funds",
+                  "regulates",
+                  "affects",
+                  "contradicts",
+                  "clarifies",
+                  "related_to"
+                ]
+              },
+              "summary": { "type": "string" },
+              "support_count": { "type": "integer", "minimum": 0, "maximum": 12 }
+            },
+            "required": ["source", "target", "relationship", "summary", "support_count"],
+            "additionalProperties": false
+          },
+          "maxItems": 12
+        }
+      },
+      "required": ["center", "topics", "edges"],
+      "additionalProperties": false
+    },
     "watch_signals": {
       "type": "array",
       "items": {
@@ -104,6 +191,7 @@
     "agreed_claims",
     "disputed_claims",
     "frames",
+    "topic_map",
     "watch_signals",
     "ripple_effects"
   ],

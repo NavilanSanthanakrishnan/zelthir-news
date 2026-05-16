@@ -25,6 +25,28 @@ const worldSectionHost = document.getElementById("worldSectionHost");
 const locationSelect = document.getElementById("locationSelect");
 const roleSelect = document.getElementById("roleSelect");
 const interestChips = document.getElementById("interestChips");
+const accountButton = document.getElementById("accountButton");
+const accountLabel = document.getElementById("accountLabel");
+const signOutButton = document.getElementById("signOutButton");
+const authModal = document.getElementById("authModal");
+const authBackdrop = document.getElementById("authBackdrop");
+const authClose = document.getElementById("authClose");
+const googleSignInButton = document.getElementById("googleSignInButton");
+const authDivider = document.getElementById("authDivider");
+const emailLoginForm = document.getElementById("emailLoginForm");
+const emailInput = document.getElementById("emailInput");
+const loginCodeForm = document.getElementById("loginCodeForm");
+const loginCodeInput = document.getElementById("loginCodeInput");
+const authStatus = document.getElementById("authStatus");
+const onboardingModal = document.getElementById("onboardingModal");
+const onboardingBackdrop = document.getElementById("onboardingBackdrop");
+const onboardingClose = document.getElementById("onboardingClose");
+const profileForm = document.getElementById("profileForm");
+const profileDisplayName = document.getElementById("profileDisplayName");
+const profilePersona = document.getElementById("profilePersona");
+const profileLocationCity = document.getElementById("profileLocationCity");
+const profileLocationState = document.getElementById("profileLocationState");
+const profileStatus = document.getElementById("profileStatus");
 
 const leadImage = document.getElementById("leadImage");
 const leadPlaceholder = document.getElementById("leadPlaceholder");
@@ -67,6 +89,7 @@ const primarySourceLayer = document.getElementById("primarySourceLayer");
 const undercoveredMix = document.getElementById("undercoveredMix");
 const connectionGraph = document.getElementById("connectionGraph");
 const storyTimeline = document.getElementById("storyTimeline");
+const topicMapDetails = document.getElementById("topicMapDetails");
 const rippleEffects = document.getElementById("rippleEffects");
 const watchSignals = document.getElementById("watchSignals");
 const askStoryForm = document.getElementById("askStoryForm");
@@ -82,7 +105,6 @@ const storyCardTemplate = document.getElementById("storyListItemTemplate");
 const modalArticleItemTemplate = document.getElementById("modalArticleItemTemplate");
 const ledgerItemTemplate = document.getElementById("ledgerItemTemplate");
 const frameItemTemplate = document.getElementById("frameItemTemplate");
-const timelineItemTemplate = document.getElementById("timelineItemTemplate");
 const forecastColumnTemplate = document.getElementById("forecastColumnTemplate");
 const watchItemTemplate = document.getElementById("watchItemTemplate");
 const coverageBucketTemplate = document.getElementById("coverageBucketTemplate");
@@ -186,9 +208,42 @@ const INTEREST_RULES = {
   markets: ["market", "oil", "trade", "economy", "investor", "stocks", "business", "tariff", "embargo"],
   security: ["war", "fighter", "attack", "sanctions", "military", "missile", "border", "security"],
   climate: ["climate", "storm", "emissions", "energy", "wildfire", "flood", "weather"],
+  culture: ["culture", "film", "music", "arts", "media", "celebrity", "festival", "book", "museum"],
+  sports: ["sport", "sports", "game", "team", "league", "coach", "player", "match", "tournament"],
+};
+
+const PERSONA_LABELS = {
+  general_reader: "General Reader",
+  local_resident: "Local Resident",
+  policy_watcher: "Policy Watcher",
+  founder: "Founder",
+  operator: "Operator",
+  investor: "Investor",
+  student: "Student",
 };
 
 const ROLE_COPY = {
+  general_reader: {
+    disaster: "This matters because it can affect safety, services, and the way public agencies respond under pressure.",
+    conflict: "This matters because conflict stories can quickly affect diplomacy, prices, public safety, and political decisions.",
+    policy: "This matters because policy decisions often change what institutions do before the public debate settles.",
+    markets: "This matters because market stories can show up in prices, jobs, and public budgets faster than expected.",
+    general: "This story is worth tracking because the downstream effects may matter more than the first headline.",
+  },
+  local_resident: {
+    disaster: "This matters because safety, services, and recovery conditions often become the real story after the first alert.",
+    conflict: "This matters at a day-to-day level because safety, services, and public messaging usually change as the story evolves.",
+    policy: "This affects how institutions behave around education, mobility, and public-facing services.",
+    markets: "This can affect prices, services, and the kinds of public decisions people feel quickly.",
+    general: "This matters because it shapes the public reality people live inside, not just the national conversation.",
+  },
+  policy_watcher: {
+    disaster: "This matters because public agencies, emergency systems, and budget choices are tested in moments like this.",
+    conflict: "This matters because the policy response can outlast the initial event through sanctions, security rules, or diplomacy.",
+    policy: "This can shift agency behavior, court strategy, enforcement priorities, and political coalitions.",
+    markets: "This matters because economic pressure often turns into policy pressure when costs or risks become visible.",
+    general: "This story is worth tracking for institutional response, accountability, and whether officials change course.",
+  },
   founder: {
     disaster: "This matters because disasters can disrupt supply chains, infrastructure, insurance costs, and local operating conditions quickly.",
     conflict: "This can quickly alter investor mood, regulatory pressure, and the operating climate for teams building through uncertainty.",
@@ -196,7 +251,7 @@ const ROLE_COPY = {
     markets: "This has direct implications for capital availability, customer confidence, and sector-level volatility.",
     general: "This story is worth tracking because it can shift sentiment, policy timing, and what the market pays attention to next.",
   },
-  engineer: {
+  operator: {
     disaster: "This matters if you depend on infrastructure resilience, communications, logistics, or emergency-response systems.",
     conflict: "This matters if you build systems that depend on infrastructure stability, platform risk, or geopolitical resilience.",
     policy: "This can reshape platform rules, data practices, and the compliance surface that technical teams inherit.",
@@ -225,9 +280,11 @@ const ROLE_COPY = {
     general: "This matters because the next-order effects often hit education and opportunity sooner than expected.",
   },
 };
+ROLE_COPY.resident = ROLE_COPY.local_resident;
+ROLE_COPY.engineer = ROLE_COPY.operator;
 
 const LOCATION_COPY = {
-  sf: "In San Francisco, the most relevant angle is usually regulation, startup sentiment, AI infrastructure, and market tone.",
+  sf: "In San Francisco, the most relevant angle is usually regulation, startup sentiment, technology infrastructure, and market tone.",
   dc: "In Washington, the key lens is institutional response: what agencies, lawmakers, or courts do next.",
   nyc: "In New York, the key lens is markets, media framing, and how capital or public attention shifts around the story.",
   global: "On a global lens, the key question is whether this becomes part of a broader narrative arc or remains a contained event.",
@@ -298,12 +355,314 @@ const state = {
   activeClusterId: null,
   activePanel: "overview",
   activeAnalysisPanel: "summary",
+  user: null,
+  profile: null,
+  authEmail: "",
+  authOptions: {
+    google: true,
+    emailCode: true,
+  },
   prefs: {
     location: "sf",
-    role: "founder",
+    role: "general_reader",
     interests: new Set(["tech", "ai", "politics"]),
+    locations: [],
   },
 };
+
+function setText(node, text) {
+  if (node) {
+    node.textContent = text;
+  }
+}
+
+function setStatus(node, text) {
+  if (node) {
+    node.textContent = text || "";
+  }
+}
+
+function ensureSelectOptions(select, options) {
+  if (!select) return;
+  for (const [value, label] of Object.entries(options)) {
+    if (select.querySelector(`option[value="${value}"]`)) continue;
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  }
+}
+
+function normalizeProfile(profile = {}) {
+  const interests = Array.isArray(profile.interests) && profile.interests.length
+    ? profile.interests
+    : [...state.prefs.interests];
+  const locations = Array.isArray(profile.locations) ? profile.locations.filter(Boolean) : [];
+  return {
+    displayName: profile.displayName || "",
+    persona: profile.persona || state.prefs.role || "general_reader",
+    interests,
+    locations,
+  };
+}
+
+function primaryProfileLocation() {
+  return state.prefs.locations.find((location) => location?.type === "city") ||
+    state.prefs.locations[0] ||
+    null;
+}
+
+function profileLocationStateValue(primaryLocation) {
+  const states = [];
+  if (primaryLocation?.state) {
+    states.push(primaryLocation.state);
+  }
+  for (const location of state.prefs.locations) {
+    if (location?.type !== "state" || !location.state || states.includes(location.state)) {
+      continue;
+    }
+    states.push(location.state);
+  }
+  return states.join(", ");
+}
+
+function locationToLabel(location) {
+  if (!location) return "";
+  if (location.label) return location.label;
+  if (location.city && location.state) return `${location.city}, ${location.state}`;
+  return location.state || location.city || "";
+}
+
+function selectedLocationToProfileLocation() {
+  const presets = {
+    sf: { type: "city", city: "San Francisco", state: "CA", country: "US", label: "San Francisco, CA" },
+    dc: { type: "city", city: "Washington", state: "DC", country: "US", label: "Washington, DC" },
+    nyc: { type: "city", city: "New York", state: "NY", country: "US", label: "New York, NY" },
+  };
+  return presets[state.prefs.location] || null;
+}
+
+function profileLocationToPreset(location) {
+  const label = locationToLabel(location).toLowerCase();
+  if (/san francisco|,\s*ca\b|california/.test(label)) return "sf";
+  if (/washington|,\s*dc\b|district of columbia/.test(label)) return "dc";
+  if (/new york|,\s*ny\b/.test(label)) return "nyc";
+  return "global";
+}
+
+function profileFormLocations() {
+  const city = cleanText(profileLocationCity?.value || "");
+  const stateCodes = cleanText(profileLocationState?.value || "")
+    .split(/[;,]/)
+    .map((stateCode) => cleanText(stateCode).toUpperCase())
+    .filter(Boolean);
+
+  if (city && stateCodes.length === 1) {
+    return [{
+      type: "city",
+      city,
+      state: stateCodes[0],
+      country: "US",
+      label: `${city}, ${stateCodes[0]}`,
+    }];
+  }
+
+  if (city && stateCodes.length > 1) {
+    return [
+      {
+        type: "city",
+        city,
+        state: stateCodes[0],
+        country: "US",
+        label: `${city}, ${stateCodes[0]}`,
+      },
+      ...stateCodes.slice(1).map((stateCode) => ({
+        type: "state",
+        state: stateCode,
+        country: "US",
+      })),
+    ];
+  }
+
+  if (!city && stateCodes.length) {
+    return stateCodes.map((stateCode) => ({
+      type: "state",
+      state: stateCode,
+      country: "US",
+    }));
+  }
+
+  return [];
+}
+
+function profileToPayload() {
+  const formLocations = profileFormLocations();
+  const locations = formLocations.length
+    ? formLocations
+    : [selectedLocationToProfileLocation()].filter(Boolean);
+  return {
+    displayName: cleanText(profileDisplayName?.value || state.profile?.displayName || ""),
+    persona: profilePersona?.value || state.prefs.role || "general_reader",
+    interests: [...state.prefs.interests],
+    locations,
+  };
+}
+
+function applyProfile(profile) {
+  ensureSelectOptions(roleSelect, PERSONA_LABELS);
+  ensureSelectOptions(profilePersona, PERSONA_LABELS);
+  const normalized = normalizeProfile(profile || {});
+  state.profile = normalized;
+  state.prefs.role = normalized.persona;
+  state.prefs.interests = new Set(normalized.interests);
+  state.prefs.locations = normalized.locations;
+
+  const primaryLocation = primaryProfileLocation();
+  if (locationSelect && primaryLocation) {
+    locationSelect.value = profileLocationToPreset(primaryLocation);
+    state.prefs.location = locationSelect.value;
+  }
+
+  if (roleSelect) {
+    roleSelect.value = normalized.persona;
+  }
+
+  for (const button of document.querySelectorAll("[data-interest], [data-profile-interest]")) {
+    const interest = button.dataset.interest || button.dataset.profileInterest;
+    button.classList.toggle("is-active", state.prefs.interests.has(interest));
+  }
+
+  if (profileDisplayName) profileDisplayName.value = normalized.displayName || "";
+  if (profilePersona) profilePersona.value = normalized.persona;
+  if (profileLocationCity) profileLocationCity.value = primaryLocation?.city || "";
+  if (profileLocationState) profileLocationState.value = profileLocationStateValue(primaryLocation);
+  renderAccountState();
+  if (state.sections.length) {
+    const rankedEntries = flattenClusters(state.sections).sort((left, right) => right.score - left.score);
+    renderPersonalized(rankedEntries);
+  }
+}
+
+function renderAccountState() {
+  const signedInLabel = state.profile?.displayName || state.user?.email || "Account";
+  setText(accountLabel, state.user ? signedInLabel : "Sign in");
+  if (signOutButton) {
+    signOutButton.hidden = !state.user;
+  }
+}
+
+function pickBooleanOption(payload, keys, fallback) {
+  for (const key of keys) {
+    const value = key.split(".").reduce((current, part) => current?.[part], payload);
+    if (typeof value === "boolean") {
+      return value;
+    }
+  }
+  return fallback;
+}
+
+function applyAuthOptions(options = {}) {
+  state.authOptions = {
+    google: pickBooleanOption(
+      options,
+      ["google", "googleEnabled", "googleOAuthEnabled", "providers.google", "providers.google.enabled"],
+      state.authOptions.google
+    ),
+    emailCode: pickBooleanOption(
+      options,
+      ["emailCode", "emailCodeEnabled", "passwordlessEmailEnabled", "devEmailCodeEnabled", "providers.emailCode", "providers.emailCode.enabled"],
+      state.authOptions.emailCode
+    ),
+  };
+
+  if (googleSignInButton) {
+    googleSignInButton.hidden = !state.authOptions.google;
+  }
+  if (authDivider) {
+    authDivider.hidden = !state.authOptions.google || !state.authOptions.emailCode;
+  }
+  if (emailLoginForm) {
+    emailLoginForm.hidden = !state.authOptions.emailCode;
+  }
+  if (loginCodeForm && !state.authOptions.emailCode) {
+    loginCodeForm.hidden = true;
+  }
+}
+
+async function loadAuthOptions() {
+  try {
+    const response = await fetch("/api/auth/options");
+    if (!response.ok) {
+      applyAuthOptions();
+      return;
+    }
+    const payload = await response.json();
+    applyAuthOptions(payload?.options || payload || {});
+  } catch {
+    applyAuthOptions();
+  }
+}
+
+function openOptionalModal(modal) {
+  if (!modal) return;
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeOptionalModal(modal) {
+  if (!modal) return;
+  modal.hidden = true;
+  if (!coverageModal || coverageModal.hidden) {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+function openAccountFlow() {
+  if (state.user) {
+    openOptionalModal(onboardingModal);
+    return;
+  }
+  openOptionalModal(authModal);
+}
+
+async function loadMe() {
+  try {
+    const response = await fetch("/api/me");
+    const payload = await response.json();
+    if (!payload?.ok) return;
+    state.user = payload.user || null;
+    applyProfile(payload.profile || {});
+  } catch {
+    renderAccountState();
+  }
+}
+
+async function saveProfilePrefs(statusNode = profileStatus) {
+  if (!state.user) {
+    setStatus(statusNode, "Sign in to save preferences.");
+    return null;
+  }
+
+  const payload = profileToPayload();
+  setStatus(statusNode, "Saving...");
+  try {
+    const response = await fetch("/api/me/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    if (!response.ok || !result?.ok) {
+      throw new Error(result?.error || "Profile could not be saved.");
+    }
+    applyProfile(result.profile || payload);
+    setStatus(statusNode, "Saved.");
+    return state.profile;
+  } catch (error) {
+    setStatus(statusNode, error.message || "Profile could not be saved.");
+    return null;
+  }
+}
 
 function setActivePanel(panelId, options = {}) {
   if (!panelId) return;
@@ -986,16 +1345,82 @@ function buildEntityGraph(cluster, entities) {
   return { nodes, edges };
 }
 
-function buildTimeline(cluster) {
-  return uniqueArticles(cluster.articles)
-    .slice()
-    .sort((left, right) => new Date(right.publishedAt) - new Date(left.publishedAt))
-    .slice(0, 5)
-    .map((article) => ({
-      time: formatRelativeTime(article.publishedAt),
-      title: article.title,
-      meta: `${article.source} • ${formatDate(article.publishedAt)}`,
-    }));
+function buildFallbackTopicMap(cluster, section, entities) {
+  const sourceNames = uniqueArticles(cluster.articles)
+    .map((article) => article.source)
+    .filter(Boolean)
+    .filter((source, index, items) => items.indexOf(source) === index)
+    .slice(0, 4);
+  const center = {
+    id: "event",
+    label: getDisplayTitle(cluster).slice(0, 64),
+    summary: buildDisplaySummary(cluster),
+  };
+  const topics = entities.slice(0, 6).map((entity, index) => ({
+    id: `topic-${index + 1}`,
+    label: entity.name,
+    type: "unknown",
+    summary: `${entity.name} appears across the clustered coverage.`,
+    weight: Math.min(100, Math.max(20, entity.count * 12)),
+    sourceNames,
+    sources: sourceNames.map((name) => {
+      const article = uniqueArticles(cluster.articles).find((item) => item.source === name);
+      return { name, url: article?.url || "" };
+    }),
+  }));
+
+  if (!topics.length) {
+    topics.push({
+      id: "coverage-context",
+      label: sectionLabels[section.id] || section.title || "Coverage context",
+      type: "unknown",
+      summary: cluster.whyItMatters || "This story is connected to the surrounding coverage context.",
+      weight: 50,
+      sourceNames,
+      sources: sourceNames.map((name) => {
+        const article = uniqueArticles(cluster.articles).find((item) => item.source === name);
+        return { name, url: article?.url || "" };
+      }),
+    });
+  }
+
+  return {
+    center,
+    topics,
+    edges: topics.map((topic) => ({
+      source: center.id,
+      target: topic.id,
+      relationship: "related_to",
+      summary: topic.summary,
+      supportCount: topic.sourceNames.length || 1,
+    })),
+  };
+}
+
+function topicMapToGraph(topicMap) {
+  if (!topicMap?.center) {
+    return { nodes: [], edges: [] };
+  }
+
+  return {
+    nodes: [
+      {
+        id: topicMap.center.id || "event",
+        label: topicMap.center.label || "Main event",
+        weight: 8,
+      },
+      ...(topicMap.topics || []).map((topic) => ({
+        id: topic.id,
+        label: topic.label,
+        weight: Math.max(1, Math.round((topic.weight || 40) / 12)),
+      })),
+    ],
+    edges: (topicMap.edges || []).map((edge) => ({
+      source: edge.source,
+      target: edge.target,
+      weight: Math.max(1, edge.supportCount || 1),
+    })),
+  };
 }
 
 function buildFrames(cluster) {
@@ -1375,7 +1800,7 @@ function getStoryIntelligence(cluster, section) {
   const frames = buildFrames(cluster);
   const entities = extractEntities(cluster);
   const graph = buildEntityGraph(cluster, entities);
-  const timeline = buildTimeline(cluster);
+  const topicMap = buildFallbackTopicMap(cluster, section, entities);
   const forecast = buildForecast(theme, entities);
   const confidence = computeConfidence(cluster, agreed);
   const brief = buildZelthirBrief(cluster, agreed, disputes, theme);
@@ -1391,7 +1816,7 @@ function getStoryIntelligence(cluster, section) {
     frames,
     entities,
     graph,
-    timeline,
+    topicMap,
     rippleEffects: forecast.ripple,
     watchSignals: forecast.watch,
     sectionTitle: sectionLabels[section.id] || section.title,
@@ -1411,6 +1836,7 @@ function mergeAiIntelligence(base, aiAnalysis) {
     agreed: aiAnalysis.agreed?.length ? aiAnalysis.agreed : base.agreed,
     disputes: aiAnalysis.disputes?.length ? aiAnalysis.disputes : base.disputes,
     frames: aiAnalysis.frames?.length ? aiAnalysis.frames : base.frames,
+    topicMap: aiAnalysis.topicMap || aiAnalysis.topic_map || base.topicMap,
     rippleEffects:
       aiAnalysis.rippleEffects &&
       Object.values(aiAnalysis.rippleEffects).some((items) => items?.length)
@@ -1419,7 +1845,7 @@ function mergeAiIntelligence(base, aiAnalysis) {
     watchSignals: aiAnalysis.watchSignals?.length ? aiAnalysis.watchSignals : base.watchSignals,
     articleParagraphs:
       aiAnalysis.articleParagraphs?.length ? aiAnalysis.articleParagraphs : base.articleParagraphs,
-    aiSource: aiAnalysis.provider || "codex-cli",
+    aiSource: aiAnalysis.provider || "live",
   };
 }
 
@@ -1438,7 +1864,7 @@ async function loadAiIntelligence(clusterId) {
   }
 
   if (state.activeClusterId === clusterId) {
-    briefConfidence.textContent = "Generating live AI analysis via Codex…";
+    briefConfidence.textContent = "Generating live analysis...";
   }
 
   const request = fetch(`/api/ai/story?clusterId=${encodeURIComponent(clusterId)}`)
@@ -1469,7 +1895,7 @@ async function loadAiIntelligence(clusterId) {
       if (state.activeClusterId === clusterId) {
         const latest = state.intelligenceCache.get(clusterId);
         if (latest?.aiSource === "heuristic") {
-          briefConfidence.textContent = `Heuristic draft • Confidence ${latest.confidence}%`;
+          briefConfidence.textContent = `Source-backed brief - Confidence ${latest.confidence}%`;
         }
       }
     });
@@ -1537,11 +1963,13 @@ function scorePersonalEntry(entry, prefs) {
     ? 4
     : intelligence.theme === "markets" && prefs.role === "investor"
       ? 5
-      : intelligence.theme === "conflict" && prefs.role === "resident"
+      : intelligence.theme === "conflict" && ["resident", "local_resident"].includes(prefs.role)
         ? 4
-        : intelligence.theme === "policy" && prefs.role === "student"
+      : intelligence.theme === "policy" && prefs.role === "student"
           ? 4
-          : intelligence.theme === "markets" && prefs.role === "engineer"
+          : intelligence.theme === "policy" && prefs.role === "policy_watcher"
+            ? 5
+          : intelligence.theme === "markets" && ["engineer", "operator"].includes(prefs.role)
             ? 3
             : 0;
 
@@ -1589,7 +2017,7 @@ function renderLead(entry) {
   leadSources.textContent = `${cluster.sourceCount} sources`;
   leadArticles.textContent = `${cluster.articleCount} articles`;
   buildSourceLinks(leadSourceLinks, cluster.articles, 8);
-  setCoverageButton(leadCoverageButton, cluster.clusterId, "Open AI analysis");
+  setCoverageButton(leadCoverageButton, cluster.clusterId, "Open story analysis");
   if (leadCard) {
     leadCard.dataset.clusterId = cluster.clusterId;
   }
@@ -1642,7 +2070,7 @@ function renderLiveRail(entries, leadId) {
     node.querySelector(".rail-card__sources").textContent = `${cluster.sourceCount} sources`;
     node.querySelector(".rail-card__articles").textContent = `${cluster.articleCount} articles`;
     buildSourceLinks(node.querySelector(".rail-card__sources-list"), cluster.articles, 4);
-    setCoverageButton(node.querySelector(".rail-card__button"), cluster.clusterId, "Open AI analysis");
+    setCoverageButton(node.querySelector(".rail-card__button"), cluster.clusterId, "Open story analysis");
 
     liveRail.appendChild(node);
   }
@@ -1714,7 +2142,7 @@ function renderDigest(entries, leadId) {
     node.querySelector(".digest-card__sources").textContent = `${cluster.sourceCount} sources`;
     node.querySelector(".digest-card__articles").textContent = `${cluster.articleCount} articles`;
     buildSourceLinks(node.querySelector(".digest-card__source-links"), cluster.articles, 5);
-    setCoverageButton(node.querySelector(".digest-card__button"), cluster.clusterId, "Open AI analysis");
+    setCoverageButton(node.querySelector(".digest-card__button"), cluster.clusterId, "Open story analysis");
 
     digestGrid.appendChild(node);
   }
@@ -1762,7 +2190,7 @@ function renderSection(section, host) {
     setCoverageButton(
       node.querySelector(".section-feature__button"),
       feature.clusterId,
-      "Open AI analysis"
+      "Open story analysis"
     );
 
     const list = node.querySelector(".section-list");
@@ -1786,7 +2214,7 @@ function renderSection(section, host) {
       card.querySelector(".story-card__sources").textContent = `${cluster.sourceCount} sources`;
       card.querySelector(".story-card__articles").textContent = `${cluster.articleCount} articles`;
       buildSourceLinks(card.querySelector(".story-card__source-links"), cluster.articles, 4);
-      setCoverageButton(card.querySelector(".story-card__button"), cluster.clusterId, "Open AI analysis");
+      setCoverageButton(card.querySelector(".story-card__button"), cluster.clusterId, "Open story analysis");
       list.appendChild(card);
     }
 
@@ -1926,11 +2354,13 @@ function renderGraph(graph) {
   const radiusY = 118;
   const nodes = graph.nodes || [];
   const edges = graph.edges || [];
+  const centerNode = nodes[0];
+  const centerId = centerNode?.id || "event";
 
   const coords = new Map();
-  coords.set("event", { x: centerX, y: centerY, width: 172, height: 58 });
+  coords.set(centerId, { x: centerX, y: centerY, width: 172, height: 58 });
 
-  const orbitNodes = nodes.filter((node) => node.id !== "event");
+  const orbitNodes = nodes.filter((node) => node.id !== centerId);
   orbitNodes.forEach((node, index) => {
     const angle = (Math.PI * 2 * index) / Math.max(1, orbitNodes.length);
     const width = Math.min(136, Math.max(94, 78 + node.weight * 3));
@@ -1969,19 +2399,19 @@ function renderGraph(graph) {
     rect.setAttribute("width", point.width);
     rect.setAttribute("height", point.height);
     rect.setAttribute("rx", "0");
-    rect.setAttribute("fill", node.id === "event" ? "rgba(241,238,230,0.08)" : "rgba(39,38,34,0.95)");
-    rect.setAttribute("stroke", node.id === "event" ? "rgba(241,238,230,0.44)" : "rgba(241,238,230,0.16)");
-    rect.setAttribute("stroke-width", node.id === "event" ? "1.5" : "1");
+    rect.setAttribute("fill", node.id === centerId ? "rgba(241,238,230,0.08)" : "rgba(39,38,34,0.95)");
+    rect.setAttribute("stroke", node.id === centerId ? "rgba(241,238,230,0.44)" : "rgba(241,238,230,0.16)");
+    rect.setAttribute("stroke-width", node.id === centerId ? "1.5" : "1");
 
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.setAttribute("x", point.x);
     text.setAttribute("y", point.y + 4);
     text.setAttribute("text-anchor", "middle");
-    text.setAttribute("font-size", node.id === "event" ? "11" : "10");
+    text.setAttribute("font-size", node.id === centerId ? "11" : "10");
     text.setAttribute("font-family", "Inter, system-ui, sans-serif");
-    text.setAttribute("font-weight", node.id === "event" ? "700" : "600");
-    text.setAttribute("fill", node.id === "event" ? "#f1eee6" : "#ddd7ca");
-    const maxLength = node.id === "event" ? 22 : 16;
+    text.setAttribute("font-weight", node.id === centerId ? "700" : "600");
+    text.setAttribute("fill", node.id === centerId ? "#f1eee6" : "#ddd7ca");
+    const maxLength = node.id === centerId ? 22 : 16;
     text.textContent = node.label.length > maxLength ? `${node.label.slice(0, maxLength)}…` : node.label;
 
     group.appendChild(rect);
@@ -1990,21 +2420,50 @@ function renderGraph(graph) {
   }
 }
 
-function renderTimeline(timeline) {
-  storyTimeline.innerHTML = "";
+function renderTopicMapDetails(topicMap) {
+  const host = topicMapDetails || storyTimeline;
+  if (!host) return;
+  host.innerHTML = "";
 
-  if (!timeline.length) {
-    storyTimeline.innerHTML = '<div class="empty-state">No timeline events available yet.</div>';
+  if (!topicMap?.center || !(topicMap.topics || []).length) {
+    host.innerHTML = '<div class="empty-state">No event map is available yet.</div>';
     return;
   }
 
-  for (const item of timeline) {
-    const node = timelineItemTemplate.content.firstElementChild.cloneNode(true);
-    node.querySelector(".timeline-item__time").textContent = item.time;
-    node.querySelector(".timeline-item__title").textContent = item.title;
-    node.querySelector(".timeline-item__meta").textContent = item.meta;
-    storyTimeline.appendChild(node);
+  const center = document.createElement("article");
+  center.className = "timeline-item";
+  center.innerHTML = `
+    <div class="timeline-item__time">Event</div>
+    <div class="timeline-item__content">
+      <h4 class="timeline-item__title"></h4>
+      <p class="timeline-item__meta"></p>
+    </div>
+  `;
+  center.querySelector(".timeline-item__title").textContent = topicMap.center.label;
+  center.querySelector(".timeline-item__meta").textContent = topicMap.center.summary;
+  host.appendChild(center);
+
+  for (const topic of topicMap.topics || []) {
+    const node = document.createElement("article");
+    node.className = "timeline-item";
+    node.innerHTML = `
+      <div class="timeline-item__time"></div>
+      <div class="timeline-item__content">
+        <h4 class="timeline-item__title"></h4>
+        <p class="timeline-item__meta"></p>
+      </div>
+    `;
+    node.querySelector(".timeline-item__time").textContent = topic.type || "topic";
+    node.querySelector(".timeline-item__title").textContent = topic.label;
+    node.querySelector(".timeline-item__meta").textContent = topic.summary || "Connected to the main event.";
+    host.appendChild(node);
   }
+}
+
+function renderEventMap(intelligence) {
+  const topicMap = intelligence.topicMap;
+  renderGraph(topicMap?.center ? topicMapToGraph(topicMap) : intelligence.graph);
+  renderTopicMapDetails(topicMap);
 }
 
 function renderForecast(ripple, watch) {
@@ -2119,8 +2578,8 @@ function renderModal(clusterId, options = {}) {
   zelthirBrief.textContent = intelligence.brief;
   briefConfidence.textContent =
     intelligence.aiSource && intelligence.aiSource !== "heuristic"
-      ? `AI via Codex CLI • Confidence ${intelligence.confidence}%`
-      : `Heuristic draft • Confidence ${intelligence.confidence}%`;
+      ? `Live brief - Confidence ${intelligence.confidence}%`
+      : `Source-backed brief - Confidence ${intelligence.confidence}%`;
   renderLedger(
     claimLedger,
     intelligence.agreed,
@@ -2143,8 +2602,7 @@ function renderModal(clusterId, options = {}) {
     buildUndercoveredItems(cluster),
     "This cluster is currently dominated by major national and international outlets."
   );
-  renderGraph(intelligence.graph);
-  renderTimeline(intelligence.timeline);
+  renderEventMap(intelligence);
   renderForecast(intelligence.rippleEffects, intelligence.watchSignals);
   renderAskAnswer(getDefaultAnswer(intelligence));
   askStoryInput.value = "";
@@ -2200,13 +2658,13 @@ function renderHomepage(payload) {
 
   if (payload.fallbackReason) {
     providerNote.textContent =
-      `Live refresh is active every ${payload.autoRefreshMinutes || 2} minutes. This run is using Google News plus direct publisher feeds because no NewsAPI key is configured.`;
+      `Coverage refreshes every ${payload.autoRefreshMinutes || 2} minutes and may use a smaller source mix right now.`;
   } else if ((payload.provider || "").includes("newsapi")) {
     providerNote.textContent =
-      `Live refresh is active every ${payload.autoRefreshMinutes || 2} minutes. Discovery is widened with NewsAPI, Google News, and direct feeds before clustering.`;
+      `Coverage refreshes every ${payload.autoRefreshMinutes || 2} minutes with a broad source mix.`;
   } else {
     providerNote.textContent =
-      `Live refresh is active every ${payload.autoRefreshMinutes || 2} minutes. Stories are grouped from Google News expansion and direct publisher feeds.`;
+      `Coverage refreshes every ${payload.autoRefreshMinutes || 2} minutes as related stories are found.`;
   }
 
   if (state.activeClusterId) {
@@ -2235,7 +2693,7 @@ async function refreshHomepage() {
 }
 
 function handleInterestToggle(target) {
-  const interest = target.dataset.interest;
+  const interest = target.dataset.interest || target.dataset.profileInterest;
   if (!interest) return;
 
   if (state.prefs.interests.has(interest)) {
@@ -2244,14 +2702,95 @@ function handleInterestToggle(target) {
     state.prefs.interests.add(interest);
   }
 
-  target.classList.toggle("is-active", state.prefs.interests.has(interest));
+  for (const button of document.querySelectorAll(`[data-interest="${interest}"], [data-profile-interest="${interest}"]`)) {
+    button.classList.toggle("is-active", state.prefs.interests.has(interest));
+  }
   const rankedEntries = flattenClusters(state.sections).sort((left, right) => right.score - left.score);
   renderPersonalized(rankedEntries);
+  void saveProfilePrefs(null);
 
   if (state.activeClusterId) {
     const entry = state.clustersById.get(state.activeClusterId);
     const intelligence = getStoryIntelligence(entry.cluster, entry.section);
     renderAskAnswer(answerStoryQuestion("why does this matter", intelligence));
+  }
+}
+
+async function startEmailLogin(event) {
+  event.preventDefault();
+  if (!state.authOptions.emailCode) {
+    setStatus(authStatus, "Use Google to continue.");
+    return;
+  }
+  const email = cleanText(emailInput?.value || "");
+  if (!email) {
+    setStatus(authStatus, "Enter an email address.");
+    return;
+  }
+
+  setStatus(authStatus, "Sending code...");
+  try {
+    const response = await fetch("/api/auth/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.error || "Could not start sign in.");
+    }
+    state.authEmail = email;
+    setStatus(authStatus, payload.message || "Enter the code to continue.");
+    if (loginCodeForm) {
+      loginCodeForm.hidden = false;
+    }
+    loginCodeInput?.focus();
+  } catch (error) {
+    setStatus(authStatus, error.message || "Could not start sign in.");
+  }
+}
+
+async function verifyEmailLogin(event) {
+  event.preventDefault();
+  if (!state.authOptions.emailCode) {
+    setStatus(authStatus, "Use Google to continue.");
+    return;
+  }
+  const email = state.authEmail || cleanText(emailInput?.value || "");
+  const code = cleanText(loginCodeInput?.value || "");
+  if (!email || !code) {
+    setStatus(authStatus, "Enter the code to continue.");
+    return;
+  }
+
+  setStatus(authStatus, "Signing in...");
+  try {
+    const response = await fetch("/api/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload?.ok) {
+      throw new Error(payload?.error || "Could not sign in.");
+    }
+    state.user = payload.user || null;
+    applyProfile(payload.profile || {});
+    setStatus(authStatus, "Signed in.");
+    closeOptionalModal(authModal);
+    openOptionalModal(onboardingModal);
+  } catch (error) {
+    setStatus(authStatus, error.message || "Could not sign in.");
+  }
+}
+
+async function signOut() {
+  try {
+    await fetch("/api/logout", { method: "POST" });
+  } finally {
+    state.user = null;
+    state.profile = null;
+    renderAccountState();
   }
 }
 
@@ -2285,33 +2824,66 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  const interestButton = event.target.closest(".interest-chip");
+  const interestButton = event.target.closest(".interest-chip, [data-profile-interest]");
   if (interestButton) {
     handleInterestToggle(interestButton);
   }
 });
 
-refreshButton.addEventListener("click", refreshHomepage);
-coverageClose.addEventListener("click", closeModal);
-coverageBackdrop.addEventListener("click", closeModal);
-locationSelect.addEventListener("change", () => {
+refreshButton?.addEventListener("click", refreshHomepage);
+coverageClose?.addEventListener("click", closeModal);
+coverageBackdrop?.addEventListener("click", closeModal);
+accountButton?.addEventListener("click", openAccountFlow);
+signOutButton?.addEventListener("click", signOut);
+authClose?.addEventListener("click", () => closeOptionalModal(authModal));
+authBackdrop?.addEventListener("click", () => closeOptionalModal(authModal));
+onboardingClose?.addEventListener("click", () => closeOptionalModal(onboardingModal));
+onboardingBackdrop?.addEventListener("click", () => closeOptionalModal(onboardingModal));
+googleSignInButton?.addEventListener("click", () => {
+  if (!state.authOptions.google) {
+    setStatus(authStatus, "Email sign-in is available for this session.");
+    return;
+  }
+  window.location.href = "/api/auth/google/start";
+});
+emailLoginForm?.addEventListener("submit", startEmailLogin);
+loginCodeForm?.addEventListener("submit", verifyEmailLogin);
+profileForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const saved = await saveProfilePrefs(profileStatus);
+  if (saved) {
+    closeOptionalModal(onboardingModal);
+    const rankedEntries = flattenClusters(state.sections).sort((left, right) => right.score - left.score);
+    renderPersonalized(rankedEntries);
+  }
+});
+locationSelect?.addEventListener("change", () => {
   state.prefs.location = locationSelect.value;
   const rankedEntries = flattenClusters(state.sections).sort((left, right) => right.score - left.score);
   renderPersonalized(rankedEntries);
+  void saveProfilePrefs(null);
 });
-roleSelect.addEventListener("change", () => {
+roleSelect?.addEventListener("change", () => {
   state.prefs.role = roleSelect.value;
+  if (profilePersona) {
+    profilePersona.value = roleSelect.value;
+  }
   const rankedEntries = flattenClusters(state.sections).sort((left, right) => right.score - left.score);
   renderPersonalized(rankedEntries);
+  void saveProfilePrefs(null);
 });
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !coverageModal.hidden) {
+  if (event.key === "Escape" && coverageModal && !coverageModal.hidden) {
     closeModal();
+  } else if (event.key === "Escape" && authModal && !authModal.hidden) {
+    closeOptionalModal(authModal);
+  } else if (event.key === "Escape" && onboardingModal && !onboardingModal.hidden) {
+    closeOptionalModal(onboardingModal);
   }
 });
 
-askStoryForm.addEventListener("submit", (event) => {
+askStoryForm?.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!state.activeClusterId) {
     renderAskAnswer("Open a story cluster first, then ask about what happened, what is disputed, or what to watch next.");
@@ -2329,8 +2901,12 @@ askStoryForm.addEventListener("submit", (event) => {
   renderAskAnswer(answerStoryQuestion(question, intelligence));
 });
 
-leadCoverageButton.dataset.clusterId = "";
+if (leadCoverageButton) {
+  leadCoverageButton.dataset.clusterId = "";
+}
 setActivePanel(state.activePanel);
 
+void loadMe();
+void loadAuthOptions();
 loadHomepage();
 setInterval(loadHomepage, homepagePollMs);

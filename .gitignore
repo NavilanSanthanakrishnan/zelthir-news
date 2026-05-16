@@ -4,3 +4,6 @@ node_modules
 data/latest-top-stories.json
 data/homepage-cache.json
 .vercel
+plan.md
+*.log
+logs/

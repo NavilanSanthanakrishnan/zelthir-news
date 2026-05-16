@@ -2,22 +2,40 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { analyzeClusterWithCodex } from "./src/ai/codexStoryAnalysis.mjs";
+import { analyzeCluster } from "./src/ai/storyAnalysisProvider.mjs";
 import { discoveryConfig } from "./src/ingest/config.mjs";
 import { getArticleMetadata } from "./src/ingest/articleMetadata.mjs";
 import { getCachedHome, runHomepageDiscovery } from "./src/ingest/discoveryAgent.mjs";
+import healthRoutes from "./src/server/healthRoutes.mjs";
+import { createAuthRouter } from "./src/server/authRoutes.mjs";
+import { createProfileRouter } from "./src/server/profileRoutes.mjs";
+import { registerSourceRoutes } from "./src/server/sourceRoutes.mjs";
+import createTaxonomyRouter from "./src/server/taxonomyRoutes.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT || 3210);
+const frontendOrigin = process.env.FRONTEND_ORIGIN?.trim() || "http://127.0.0.1:5173";
+const serveStatic = process.env.SERVE_STATIC?.trim() !== "false";
 const autoRefreshMs = discoveryConfig.autoRefreshMinutes * 60 * 1000;
 const staleAfterMs = discoveryConfig.staleAfterMinutes * 60 * 1000;
 let refreshPromise = null;
 
+app.disable("x-powered-by");
+app.use(applyProductionHeaders);
+app.use(applyCorsHeaders);
 app.use(express.json({ limit: "1mb" }));
-app.use("/app", express.static(path.join(__dirname, "public")));
-app.use("/docs", express.static(__dirname));
+app.use(healthRoutes);
+app.use(createAuthRouter());
+app.use(createProfileRouter());
+app.use(createTaxonomyRouter());
+registerSourceRoutes(app);
+
+if (serveStatic) {
+  app.use("/app", express.static(path.join(__dirname, "public")));
+  app.use("/docs", express.static(__dirname));
+}
 
 function isCacheStale(home) {
   const generatedMs = home?.generatedAt ? new Date(home.generatedAt).getTime() : 0;
@@ -96,6 +114,11 @@ app.get("/favicon.ico", (_req, res) => {
 });
 
 app.get("/", (_req, res) => {
+  if (!serveStatic) {
+    res.status(404).json({ ok: false, error: "Static serving is disabled" });
+    return;
+  }
+
   res.redirect("/app/");
 });
 
@@ -208,7 +231,7 @@ app.get("/api/ai/story", async (req, res) => {
       return;
     }
 
-    const analysis = await analyzeClusterWithCodex(match.cluster, match.section);
+    const analysis = await analyzeCluster(match.cluster, match.section);
     res.json({
       ok: true,
       provider: discoveryConfig.aiProvider,
@@ -216,9 +239,10 @@ app.get("/api/ai/story", async (req, res) => {
       analysis,
     });
   } catch (error) {
-    res.status(500).json({
+    const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+    res.status(statusCode).json({
       ok: false,
-      error: error instanceof Error ? error.message : "AI analysis failed",
+      error: error?.publicMessage || error?.message || "AI analysis failed",
     });
   }
 });
@@ -252,7 +276,7 @@ async function warmHomeCache() {
 
 if (!process.env.VERCEL) {
   app.listen(port, async () => {
-    console.log(`Zelthir running at http://127.0.0.1:${port}/app/`);
+    console.log(`Zelthir API running at http://127.0.0.1:${port}`);
     await warmHomeCache();
   });
 
@@ -262,3 +286,57 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
+
+function applyProductionHeaders(_req, res, next) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+
+  next();
+}
+
+function applyCorsHeaders(req, res, next) {
+  const origin = req.headers.origin;
+  if (origin && getAllowedOrigins().has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Vary", appendVary(res.getHeader("Vary"), "Origin"));
+  }
+
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+    res.status(204).end();
+    return;
+  }
+
+  next();
+}
+
+function getAllowedOrigins() {
+  return new Set([
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://127.0.0.1:3210",
+    "http://localhost:3210",
+    frontendOrigin,
+    process.env.API_BASE_URL?.trim(),
+    process.env.BACKEND_PUBLIC_URL?.trim(),
+  ].filter(Boolean).map(trimTrailingSlash));
+}
+
+function appendVary(currentValue, value) {
+  const values = String(currentValue || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return values.includes(value) ? values.join(", ") : [...values, value].join(", ");
+}
+
+function trimTrailingSlash(value) {
+  return value.replace(/\/+$/, "");
+}

@@ -1,6 +1,7 @@
 import Parser from "rss-parser";
 
-import { LOW_SIGNAL_PATTERNS } from "./sourceRegistry.mjs";
+import { discoveryConfig } from "./config.mjs";
+import { isLowSignalContent } from "./sourceRegistry.mjs";
 
 const parser = new Parser({
   customFields: {
@@ -51,17 +52,92 @@ function matchesAllowedHost(url, allowedHosts = []) {
   }
 }
 
-function isLowSignalText(title, snippet) {
-  const text = `${title} ${snippet}`;
-  return LOW_SIGNAL_PATTERNS.some((pattern) => pattern.test(text));
+function normalizeCategoryValue(category) {
+  if (!category) {
+    return "";
+  }
+
+  if (typeof category === "string") {
+    return category.trim();
+  }
+
+  if (typeof category === "object") {
+    return String(category._ || category["#"] || category.$text || "").trim();
+  }
+
+  return String(category).trim();
+}
+
+function normalizeCategories(...categoryGroups) {
+  return categoryGroups
+    .flatMap((group) => (Array.isArray(group) ? group : [group]))
+    .map(normalizeCategoryValue)
+    .filter(Boolean);
+}
+
+function sourceMetadata(source) {
+  return {
+    sourceId: source.id,
+    sourceScope: source.scope || null,
+    sourceCountry: source.country || null,
+    sourceState: source.state || null,
+    sourceCity: source.city || null,
+    sourceMetro: source.metro || null,
+    sourceCategories: source.categories || [],
+    sourcePriority: source.priority || 0,
+    sourceRequired: Boolean(source.required),
+    sourceSiteUrl: source.siteUrl || null,
+  };
+}
+
+function sourceDiagnostic(source, overrides = {}) {
+  return {
+    sourceId: source.id,
+    sourceName: source.name,
+    sourceScope: source.scope || null,
+    sourceState: source.state || null,
+    sourceCity: source.city || null,
+    ok: false,
+    feedItemCount: 0,
+    articleCount: 0,
+    error: null,
+    ...overrides,
+  };
+}
+
+async function parseFeed(source) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), discoveryConfig.refreshTimeoutMs);
+
+  try {
+    const response = await fetch(source.feedUrl, {
+      headers: {
+        "user-agent": "Mozilla/5.0",
+        accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+      },
+      redirect: "follow",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Feed returned HTTP ${response.status}`);
+    }
+
+    return await parser.parseString(await response.text());
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function fetchFeed(source, sectionId) {
   try {
-    const feed = await parser.parseURL(source.feedUrl);
-    return (feed.items || []).slice(0, 30).flatMap((item, index) => {
+    const feed = await parseFeed(source);
+    const feedItems = feed.items || [];
+    const articles = feedItems.slice(0, 30).flatMap((item, index) => {
       const title = item.title?.trim() || "";
       const snippet = (item.contentSnippet || item.content || item.description || "").replace(/\s+/g, " ").trim();
+      const itemCategories = normalizeCategories(item.category, item.categories);
+      const filterCategories = normalizeCategories(source.categories, itemCategories);
 
       if (
         !item.link ||
@@ -69,7 +145,7 @@ async function fetchFeed(source, sectionId) {
         !matchesAllowedHost(item.link, source.allowedHosts) ||
         /\/video\//i.test(item.link) ||
         /\/opinions?\//i.test(item.link) ||
-        isLowSignalText(title, snippet)
+        isLowSignalContent(title, snippet, filterCategories)
       ) {
         return [];
       }
@@ -86,18 +162,42 @@ async function fetchFeed(source, sectionId) {
           section: sectionId,
           language: "en",
           isDirect: true,
+          ...sourceMetadata(source),
         },
       ];
     });
-  } catch {
-    return [];
+
+    return {
+      articles,
+      diagnostic: sourceDiagnostic(source, {
+        ok: true,
+        feedItemCount: feedItems.length,
+        articleCount: articles.length,
+      }),
+    };
+  } catch (error) {
+    return {
+      articles: [],
+      diagnostic: sourceDiagnostic(source, {
+        error: error instanceof Error ? error.message : "Feed fetch or parse failed",
+      }),
+    };
   }
 }
 
-export async function discoverSectionFromRss(sectionConfig) {
-  const articleLists = await Promise.all(
-    sectionConfig.rssSources.map((source) => fetchFeed(source, sectionConfig.id))
+export async function discoverSectionFromRss(sectionConfig, options = {}) {
+  const sources = options.sources || sectionConfig.rssSources || [];
+  const results = await Promise.all(
+    sources.map((source) => fetchFeed(source, sectionConfig.id))
   );
+  const articles = results.flatMap((result) => result.articles);
 
-  return articleLists.flat();
+  if (options.includeDiagnostics) {
+    return {
+      articles,
+      diagnostics: results.map((result) => result.diagnostic),
+    };
+  }
+
+  return articles;
 }

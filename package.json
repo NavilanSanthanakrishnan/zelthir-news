@@ -5,15 +5,30 @@
   "type": "module",
   "scripts": {
     "dev": "node server.mjs",
+    "dev:frontend": "vite --host 127.0.0.1 --port 5173",
+    "dev:backend": "node server.mjs",
+    "dev:db": "docker compose up postgres",
+    "db:migrate": "node src/db/migrate.mjs",
+    "check:health": "node scripts/check-health.mjs",
+    "check:ai": "node scripts/check-gemini-analysis.mjs",
+    "check:production": "NODE_ENV=production node scripts/check-production.mjs",
+    "check:sources": "node scripts/check-sources.mjs",
+    "check:taxonomy": "node scripts/check-taxonomy.mjs",
     "start": "NODE_ENV=production node server.mjs",
     "ingest": "node scripts/run-ingest.mjs"
   },
   "dependencies": {
+    "@google/genai": "^1.31.0",
     "@mozilla/readability": "^0.6.0",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "google-auth-library": "^10.6.2",
     "google-news-decoder": "^1.0.1",
     "jsdom": "^26.1.0",
+    "pg": "^8.16.3",
     "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "vite": "^7.2.4"
   }
 }

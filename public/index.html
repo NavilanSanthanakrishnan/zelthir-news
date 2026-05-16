@@ -31,11 +31,16 @@
             <a href="#contentDeck" data-panel-target="personalized">For You</a>
             <a href="#contentDeck" data-panel-target="usa">USA</a>
             <a href="#contentDeck" data-panel-target="world">World</a>
-            <a href="#contentDeck" data-panel-target="engine">Analysis</a>
-            <a href="/docs/index.html" target="_blank" rel="noreferrer">PRD</a>
+            <a href="#contentDeck" data-panel-target="engine">Reader Tools</a>
           </nav>
 
-          <button id="refreshButton" class="refresh-button" type="button">Refresh</button>
+          <div class="masthead__actions">
+            <button id="accountButton" class="account-button" type="button">
+              <span id="accountLabel">Sign in</span>
+            </button>
+            <button id="signOutButton" class="sign-out-button" type="button" hidden>Sign out</button>
+            <button id="refreshButton" class="refresh-button" type="button">Refresh</button>
+          </div>
         </div>
 
         <div class="masthead__meta">
@@ -68,7 +73,7 @@
 
               <h1 id="leadTitle" class="lead-card__title">Loading lead story...</h1>
               <p id="leadSummary" class="lead-card__summary">
-                We are building the front page from grouped reporting across multiple publishers.
+                Zelthir is preparing the front page from grouped reporting across multiple publishers.
               </p>
               <p id="leadWhy" class="lead-card__why">
                 The biggest, freshest cluster across the current news cycle shows up here.
@@ -162,7 +167,7 @@
               <span class="tab-pill__count" id="worldCount">0</span>
             </button>
             <button class="tab-pill" type="button" data-panel="engine" aria-selected="false">
-              <span>Engine</span>
+              <span>Reader Tools</span>
             </button>
           </div>
 
@@ -175,12 +180,12 @@
                     <h2>More Stories</h2>
                   </div>
                   <p class="section-note">
-                    Open any story to inspect the grouped reporting, AI brief, coverage split, connections, and forecast.
+                    Open any story to inspect the grouped reporting, main takeaways, coverage split, connections, and forecast.
                   </p>
                 </div>
 
                 <div id="digestGrid" class="digest-grid">
-                  <div class="empty-state">Building the top grouped coverage cards...</div>
+                  <div class="empty-state">Preparing the top grouped coverage...</div>
                 </div>
               </section>
             </section>
@@ -213,7 +218,7 @@
                     <span class="control__label">Role</span>
                     <select id="roleSelect" class="control__select">
                       <option value="founder">Founder</option>
-                      <option value="engineer">Engineer</option>
+                      <option value="engineer">Operator</option>
                       <option value="investor">Investor</option>
                       <option value="resident">Local Resident</option>
                       <option value="student">Student</option>
@@ -229,12 +234,14 @@
                       <button class="interest-chip" type="button" data-interest="markets">Markets</button>
                       <button class="interest-chip" type="button" data-interest="security">Security</button>
                       <button class="interest-chip" type="button" data-interest="climate">Climate</button>
+                      <button class="interest-chip" type="button" data-interest="culture">Culture</button>
+                      <button class="interest-chip" type="button" data-interest="sports">Sports</button>
                     </div>
                   </div>
                 </div>
 
                 <div id="personalizedGrid" class="personalized-grid">
-                  <div class="empty-state">Building your personalized intelligence feed...</div>
+                  <div class="empty-state">Preparing your personalized news feed...</div>
                 </div>
               </section>
             </section>
@@ -255,31 +262,31 @@
               <section id="engine" class="engine-section panel-section">
                 <div class="section-heading">
                   <div>
-                    <p class="kicker">Pipeline</p>
-                    <h2>How this front page is assembled</h2>
+                    <p class="kicker">Reader Tools</p>
+                    <h2>How Zelthir helps you read faster</h2>
                   </div>
                   <p class="section-note">
-                    MiroFish-style forecasting is implemented locally through our own graph, framing, and
-                    ripple-effects layer, not through a direct MiroFish API.
+                    Every story view brings together the strongest reporting, where coverage agrees or
+                    diverges, and the signals worth watching next.
                   </p>
                 </div>
 
                 <div class="engine-grid">
                   <article class="engine-card">
-                    <h3>1. Discover</h3>
-                    <p>Pull a large live article pool from Google News expansion and direct publisher feeds.</p>
+                    <h3>1. Gather</h3>
+                    <p>Bring related reporting from different publishers into one place.</p>
                   </article>
                   <article class="engine-card">
-                    <h3>2. Dedupe</h3>
-                    <p>Collapse repeated URLs, source rewrites, and low-signal coverage before grouping.</p>
+                    <h3>2. Compare</h3>
+                    <p>Show the claims, details, and source angles that matter most.</p>
                   </article>
                   <article class="engine-card">
-                    <h3>3. Group</h3>
-                    <p>Cluster same-event reporting with title, snippet, source, and timing overlap.</p>
+                    <h3>3. Connect</h3>
+                    <p>Map nearby topics so you can see how one event may affect another.</p>
                   </article>
                   <article class="engine-card">
-                    <h3>4. Explain</h3>
-                    <p>Generate the Zelthir brief, perspective matrix, connection graph, and watch signals.</p>
+                    <h3>4. Watch</h3>
+                    <p>Highlight what could change next and which signals deserve another look.</p>
                   </article>
                 </div>
               </section>
@@ -338,7 +345,7 @@
 
         <div id="analysisTabs" class="analysis-tabs" role="tablist" aria-label="Story analysis tabs">
           <button class="analysis-tab is-active" type="button" data-analysis-panel="summary" aria-selected="true">
-            AI Summary
+            Brief
           </button>
           <button class="analysis-tab" type="button" data-analysis-panel="coverage" aria-selected="false">
             Coverage
@@ -417,10 +424,14 @@
                 <svg id="connectionGraph" class="graph-canvas" viewBox="0 0 520 320" role="img" aria-label="Story connection graph"></svg>
               </article>
 
-              <article class="intel-card intel-card--timeline">
-                <p class="kicker">Evolution</p>
-                <h3>Story Timeline</h3>
-                <div id="storyTimeline" class="timeline-list"></div>
+              <article class="intel-card intel-card--map-details">
+                <p class="kicker">Related Topics</p>
+                <h3>Map Details</h3>
+                <div id="topicMapDetails" class="topic-map-details">
+                  <p class="intel-copy">
+                    Select a story to see how nearby topics, source threads, and watch signals connect.
+                  </p>
+                </div>
               </article>
             </div>
           </section>
@@ -462,6 +473,99 @@
             </article>
           </section>
         </div>
+      </section>
+    </div>
+
+    <div id="authModal" class="auth-modal app-modal" hidden>
+      <div id="authBackdrop" class="app-modal__backdrop"></div>
+      <section class="app-modal__panel auth-modal__panel" aria-modal="true" role="dialog" aria-labelledby="authTitle">
+        <button id="authClose" class="app-modal__close" type="button" aria-label="Close sign in">
+          Close
+        </button>
+        <div class="app-modal__header">
+          <p class="kicker">Account</p>
+          <h2 id="authTitle">Sign in to Zelthir</h2>
+          <p class="app-modal__copy">
+            Save your reading profile and keep your personalized view ready across sessions.
+          </p>
+        </div>
+        <button id="googleSignInButton" class="account-provider-button" type="button">
+          Continue with Google
+        </button>
+        <div id="authDivider" class="auth-divider"><span>or</span></div>
+        <form id="emailLoginForm" class="auth-form">
+          <label class="field-control">
+            <span>Email address</span>
+            <input id="emailInput" type="email" autocomplete="email" placeholder="you@example.com" />
+          </label>
+          <button class="coverage-button" type="submit">Send sign-in code</button>
+        </form>
+        <form id="loginCodeForm" class="auth-form" hidden>
+          <label class="field-control">
+            <span>Sign-in code</span>
+            <input id="loginCodeInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" />
+          </label>
+          <button class="coverage-button" type="submit">Verify code</button>
+        </form>
+        <p id="authStatus" class="form-status" role="status"></p>
+      </section>
+    </div>
+
+    <div id="onboardingModal" class="onboarding-modal app-modal" hidden>
+      <div id="onboardingBackdrop" class="app-modal__backdrop"></div>
+      <section class="app-modal__panel onboarding-modal__panel" aria-modal="true" role="dialog" aria-labelledby="onboardingTitle">
+        <button id="onboardingClose" class="app-modal__close" type="button" aria-label="Close profile">
+          Close
+        </button>
+        <div class="app-modal__header">
+          <p class="kicker">Profile</p>
+          <h2 id="onboardingTitle">Tune your news view</h2>
+          <p class="app-modal__copy">
+            Choose a few details so Zelthir can prioritize stories that fit your day.
+          </p>
+        </div>
+        <form id="profileForm" class="profile-form">
+          <label class="field-control">
+            <span>Display name</span>
+            <input id="profileDisplayName" type="text" autocomplete="name" placeholder="Your name" />
+          </label>
+          <label class="field-control">
+            <span>Perspective</span>
+            <select id="profilePersona">
+              <option value="reader">General reader</option>
+              <option value="founder">Founder</option>
+              <option value="engineer">Operator</option>
+              <option value="investor">Investor</option>
+              <option value="resident">Local resident</option>
+              <option value="student">Student</option>
+            </select>
+          </label>
+          <div class="profile-location">
+            <label class="field-control">
+              <span>City</span>
+              <input id="profileLocationCity" type="text" autocomplete="address-level2" placeholder="San Francisco" />
+            </label>
+            <label class="field-control">
+              <span>State</span>
+              <input id="profileLocationState" type="text" autocomplete="address-level1" placeholder="CA" />
+            </label>
+          </div>
+          <fieldset class="profile-interests">
+            <legend>Interests</legend>
+            <div class="interest-chips">
+              <button class="interest-chip is-active" type="button" data-profile-interest="tech">Tech</button>
+              <button class="interest-chip is-active" type="button" data-profile-interest="ai">AI</button>
+              <button class="interest-chip is-active" type="button" data-profile-interest="politics">Politics</button>
+              <button class="interest-chip" type="button" data-profile-interest="markets">Markets</button>
+              <button class="interest-chip" type="button" data-profile-interest="security">Security</button>
+              <button class="interest-chip" type="button" data-profile-interest="climate">Climate</button>
+              <button class="interest-chip" type="button" data-profile-interest="culture">Culture</button>
+              <button class="interest-chip" type="button" data-profile-interest="sports">Sports</button>
+            </div>
+          </fieldset>
+          <button class="coverage-button" type="submit">Save profile</button>
+        </form>
+        <p id="profileStatus" class="form-status" role="status"></p>
       </section>
     </div>
 

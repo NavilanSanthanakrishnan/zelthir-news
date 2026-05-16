@@ -99,7 +99,12 @@ async function fetchSourceMeta() {
   if (!sourceMetaPromise) {
     sourceMetaPromise = fetchJson("top-headlines/sources", {
       language: "en",
-    }).then((payload) => new Map((payload.sources || []).map((source) => [source.id, source])));
+    })
+      .then((payload) => new Map((payload.sources || []).map((source) => [source.id, source])))
+      .catch((error) => {
+        sourceMetaPromise = null;
+        throw error;
+      });
   }
 
   return sourceMetaPromise;
@@ -190,7 +195,7 @@ export async function discoverSectionFromNewsApi(sectionConfig) {
   }
 
   const expansions = await Promise.all(
-    expansionSeeds.map((seed) => expandSeed(seed, sectionConfig))
+    expansionSeeds.map((seed) => expandSeed(seed, sectionConfig).catch(() => []))
   );
 
   return [...seeds, ...expansions.flat()];

@@ -9,7 +9,7 @@ import { discoverSectionFromGoogleNews } from "./googleNewsProvider.mjs";
 import { SAMPLE_HOME_PAYLOAD } from "./homeSample.mjs";
 import { discoverSectionFromNewsApi } from "./newsApiProvider.mjs";
 import { discoverSectionFromRss } from "./rssProvider.mjs";
-import { SECTION_CONFIG } from "./sourceRegistry.mjs";
+import { buildSectionSourceCoverage, SECTION_CONFIG } from "./sourceRegistry.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,16 +44,55 @@ function mergeArticlePools(...articleLists) {
   return articleLists.flat().filter(Boolean);
 }
 
+function userFacingDiscoveryReason(reason) {
+  if (!reason) {
+    return null;
+  }
+
+  if (/NEWS_API_KEY|NewsAPI/i.test(reason)) {
+    return "The primary news source is unavailable, so coverage is using public feeds.";
+  }
+
+  if (/Google News|rss-fallback|feed/i.test(reason)) {
+    return "Some live feeds were unavailable, so coverage may be narrower than usual.";
+  }
+
+  return "Some live sources were unavailable, so coverage may be narrower than usual.";
+}
+
+function userFacingProviderLabel(providers) {
+  const providerSet = new Set(providers.filter(Boolean));
+
+  if (!providerSet.size) {
+    return "Live news feeds";
+  }
+
+  if ([...providerSet].some((provider) => provider.includes("newsapi"))) {
+    return "Live news coverage";
+  }
+
+  return "Public news feeds";
+}
+
 async function discoverBroadSection(sectionConfig) {
-  const [googleArticles, rssArticles] = await Promise.all([
+  const [googleArticles, nationalRss, localRss] = await Promise.all([
     discoverSectionFromGoogleNews(sectionConfig).catch(() => []),
-    discoverSectionFromRss(sectionConfig).catch(() => []),
+    discoverSectionFromRss(sectionConfig, {
+      sources: sectionConfig.rssSources || [],
+      includeDiagnostics: true,
+    }).catch(() => ({ articles: [], diagnostics: [] })),
+    discoverSectionFromRss(sectionConfig, {
+      sources: sectionConfig.localRssSources || [],
+      includeDiagnostics: true,
+    }).catch(() => ({ articles: [], diagnostics: [] })),
   ]);
+  const rssArticles = mergeArticlePools(nationalRss.articles, localRss.articles);
 
   return {
     rawArticles: mergeArticlePools(googleArticles, rssArticles),
     provider: googleArticles.length ? "google-news+rss" : "rss-fallback",
     fallbackReason: googleArticles.length ? null : "Google News expansion returned no articles",
+    feedDiagnostics: [...nationalRss.diagnostics, ...localRss.diagnostics],
   };
 }
 
@@ -61,12 +100,13 @@ async function buildSection(sectionConfig, provider) {
   let rawArticles = [];
   let fallbackReason = null;
   let actualProvider = provider;
+  let feedDiagnostics = [];
 
   if (provider === "newsapi") {
     try {
       const newsApiArticles = await discoverSectionFromNewsApi(sectionConfig);
       if (!newsApiArticles.length) {
-        throw new Error(discoveryConfig.newsApiKey ? "NewsAPI returned no articles" : "NEWS_API_KEY missing");
+        throw new Error(discoveryConfig.newsApiKey ? "NewsAPI returned no articles" : "NewsAPI unavailable");
       }
 
       const broadSupplement = await discoverBroadSection(sectionConfig);
@@ -74,6 +114,7 @@ async function buildSection(sectionConfig, provider) {
         newsApiArticles,
         broadSupplement.rawArticles
       );
+      feedDiagnostics = broadSupplement.feedDiagnostics;
       actualProvider = broadSupplement.rawArticles.length
         ? "newsapi+google-news+rss"
         : "newsapi";
@@ -87,12 +128,14 @@ async function buildSection(sectionConfig, provider) {
       }
 
       rawArticles = broadFallback.rawArticles;
+      feedDiagnostics = broadFallback.feedDiagnostics;
     }
   } else {
     const broadFallback = await discoverBroadSection(sectionConfig);
     actualProvider = broadFallback.provider;
     fallbackReason = broadFallback.fallbackReason;
     rawArticles = broadFallback.rawArticles;
+    feedDiagnostics = broadFallback.feedDiagnostics;
   }
 
   const storyClusters = clusterArticlePool(rawArticles, sectionConfig.id, {
@@ -109,6 +152,7 @@ async function buildSection(sectionConfig, provider) {
       storyClusters,
       articlePoolCount: rawArticles.length,
       clusterCount: storyClusters.length,
+      sourceCoverage: buildSectionSourceCoverage(sectionConfig, rawArticles, feedDiagnostics),
     },
     provider: actualProvider,
     fallbackReason,
@@ -124,12 +168,13 @@ export async function runHomepageDiscovery() {
     .map((result) => result.fallbackReason)
     .filter(Boolean)
     .join(" | ");
+  const providers = sectionResults.map((result) => result.provider);
 
   const payload = {
     ok: true,
-    provider: [...new Set(sectionResults.map((result) => result.provider).filter(Boolean))].join(" | "),
+    provider: userFacingProviderLabel(providers),
     generatedAt: new Date().toISOString(),
-    fallbackReason: fallbackReasons || null,
+    fallbackReason: userFacingDiscoveryReason(fallbackReasons),
     sections: Object.fromEntries(
       sectionResults.map((result) => [result.section.id, result.section])
     ),

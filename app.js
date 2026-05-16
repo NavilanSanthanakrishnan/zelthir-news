@@ -89,7 +89,7 @@ function enhanceLinks() {
   });
 }
 
-async function renderPrd() {
+async function renderArchitecture() {
   if (window.location.protocol === "file:") {
     setStatus(
       "This page renders best from a local server. Open it through localhost if the content does not load."
@@ -97,9 +97,9 @@ async function renderPrd() {
   }
 
   try {
-    const response = await fetch("./TECHNICAL_PRD.md", { cache: "no-store" });
+    const response = await fetch("./PRODUCT_ARCHITECTURE.md", { cache: "no-store" });
     if (!response.ok) {
-      throw new Error(`Failed to load PRD (${response.status})`);
+      throw new Error(`Failed to load architecture notes (${response.status})`);
     }
 
     const markdown = await response.text();
@@ -130,7 +130,7 @@ async function renderPrd() {
     enhanceLinks();
   } catch (error) {
     contentEl.innerHTML =
-      '<div class="loading-state">Unable to load the PRD. Make sure this folder is being served locally.</div>';
+      '<div class="loading-state">Unable to load the architecture notes. Make sure this folder is being served locally.</div>';
     setStatus(error.message);
   }
 }
@@ -140,4 +140,4 @@ tocToggleEl.addEventListener("click", () => {
   tocToggleEl.textContent = isCollapsed ? "Show" : "Hide";
 });
 
-renderPrd();
+renderArchitecture();

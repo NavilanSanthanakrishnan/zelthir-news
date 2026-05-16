@@ -1,14 +1,15 @@
 # Zelthir Architecture
 
-Zelthir is a news platform with an attached intelligence layer. The system ingests broad coverage from multiple providers, normalizes and clusters related articles into a story object, enriches the story with better metadata, and then generates structured AI analysis for the selected cluster.
+Zelthir is a production-oriented news intelligence app. It ingests coverage from configured providers, normalizes and clusters related articles into story objects, enriches metadata, and generates structured story intelligence with Gemini.
 
 ## System Goals
 
-- collect fresh coverage from a broad source network
-- collapse duplicated or closely related reporting into a single story cluster
-- present that cluster as a newsroom-ready surface with reliable imagery and source visibility
-- generate an AI-drafted best-supported account of what happened
-- expose evidence, disputes, framing, and predictive signals without hiding uncertainty
+- collect fresh coverage from NewsAPI, Google News, and RSS
+- collapse duplicated or closely related reporting into story clusters
+- present clustered stories with reliable source visibility and imagery
+- generate a best-supported story account, claims, disputes, framing, Event Map, watch signals, and ripple effects
+- persist authentication and reader profile state in Postgres
+- support production sign-in with Google OAuth
 
 ## End-To-End Flow
 
@@ -19,14 +20,26 @@ flowchart LR
     C --> D["Deduplication"]
     D --> E["Cluster Engine"]
     E --> F["Metadata Hydration"]
-    E --> G["Codex Story Analysis"]
+    E --> G["Gemini Story Analysis"]
     F --> H["Homepage Cache"]
     G --> I["Structured Story Intelligence"]
     H --> J["Express API"]
     I --> J
     J --> K["News Platform UI"]
-    J --> L["Docs UI"]
+    L["Google OAuth / Profile Forms"] --> M["Auth + Profile Routes"]
+    M --> N["Postgres"]
+    N --> J
 ```
+
+## Local Runtime
+
+The local app has three development services:
+
+- Postgres from Docker Compose for users, sessions, OAuth accounts, login codes, and profile preferences.
+- Express backend on `http://127.0.0.1:3210` for APIs, auth, ingestion, Gemini analysis, static serving, and health checks.
+- Vite frontend on `http://127.0.0.1:5173` when running the frontend separately.
+
+Production uses `server.mjs` as the Vercel entrypoint. Static files can be served by Express unless `SERVE_STATIC=false`.
 
 ## Runtime Components
 
@@ -38,16 +51,13 @@ Responsibilities:
 
 - fetch seed coverage from configured providers
 - expand story candidates beyond a single homepage feed
-- provide enough article breadth to create real multi-source clusters
+- provide article breadth for multi-source clusters
 
 Current providers:
 
-- `newsApiProvider.mjs`
-  Uses NewsAPI when a key is configured.
-- `googleNewsProvider.mjs`
-  Uses Google News feeds and search expansion to broaden coverage.
-- `rssProvider.mjs`
-  Uses direct publisher RSS feeds as a resilient fallback.
+- `newsApiProvider.mjs`: uses NewsAPI when a key is configured.
+- `googleNewsProvider.mjs`: uses Google News feeds and search expansion.
+- `rssProvider.mjs`: uses direct publisher RSS feeds as a fallback.
 
 ### 2. Normalization And Deduplication
 
@@ -82,7 +92,7 @@ Primary file: `src/ingest/clusterEngine.mjs`
 Responsibilities:
 
 - compare article titles, snippets, timestamps, and source diversity
-- merge related reporting into a single event-level story cluster
+- merge related reporting into event-level story clusters
 - choose a canonical title and representative imagery
 - rank clusters for the homepage
 
@@ -115,18 +125,22 @@ Responsibilities:
 
 This layer exists because publisher imagery is one of the most failure-prone parts of any news interface.
 
-### 5. AI Story Analysis
+### 5. Gemini Story Analysis
 
-Primary file: `src/ai/codexStoryAnalysis.mjs`
+Primary files:
+
+- `src/ai/storyAnalysisProvider.mjs`
+- `src/ai/geminiStoryAnalysis.mjs`
 
 Responsibilities:
 
-- build an evidence-constrained prompt from the cluster
-- call the locally authenticated `codex` CLI
-- request a strict JSON response rather than free-form prose
-- normalize the AI output into product fields used by the UI
+- build source-constrained story context from the selected cluster
+- call Gemini when `AI_PROVIDER=gemini`
+- request and validate schema-shaped JSON
+- normalize output into UI fields
+- provide fallbacks when generated analysis is partial
 
-Structured analysis output:
+Structured analysis output includes:
 
 ```json
 {
@@ -137,6 +151,11 @@ Structured analysis output:
   "agreed_claims": [],
   "disputed_claims": [],
   "frames": [],
+  "topic_map": {
+    "center": {},
+    "topics": [],
+    "edges": []
+  },
   "watch_signals": [],
   "ripple_effects": {
     "24h": [],
@@ -146,9 +165,34 @@ Structured analysis output:
 }
 ```
 
-This is the live AI path in the repository.
+### 6. Auth And Profile Persistence
 
-### 6. API Layer
+Primary files:
+
+- `src/server/authRoutes.mjs`
+- `src/server/profileRoutes.mjs`
+- `src/server/sessionCookies.mjs`
+- `src/storage/postgresStore.mjs`
+
+Responsibilities:
+
+- expose available sign-in providers
+- run Google OAuth production sign-in
+- support development email-code sign-in when configured
+- create, hash, validate, and clear session cookies
+- store users, sessions, OAuth accounts, login codes, and profiles in Postgres
+
+Implemented tables:
+
+- `users`
+- `login_codes`
+- `sessions`
+- `profiles`
+- `profile_interests`
+- `profile_locations`
+- `oauth_accounts`
+
+### 7. API Layer
 
 Primary file: `server.mjs`
 
@@ -159,17 +203,29 @@ Responsibilities:
 - trigger manual refreshes
 - proxy remote imagery
 - provide article metadata previews
-- provide on-demand AI story analysis
+- provide on-demand Gemini story analysis
+- expose health, auth, profile, taxonomy, and source diagnostics
 
-Current endpoints:
+Current endpoints include:
 
 - `GET /api/home`
 - `POST /api/refresh`
 - `GET /api/image?url=...`
 - `GET /api/article-preview?url=...`
 - `GET /api/ai/story?clusterId=...`
+- `GET /api/health`
+- `GET /api/auth/options`
+- `POST /api/auth/start`
+- `POST /api/auth/verify`
+- `GET /api/auth/google/start`
+- `GET /api/auth/google/callback`
+- `GET /api/me`
+- `PUT /api/me/profile`
+- `POST /api/logout`
+- `GET /api/taxonomy`
+- `GET /api/sources`
 
-### 7. Frontend
+### 8. Frontend
 
 Primary files:
 
@@ -179,11 +235,12 @@ Primary files:
 
 Responsibilities:
 
-- render the homepage, lead story, grouped story cards, and analysis modal
+- render Pulse, Explore, and Story Intelligence
+- manage sign-in, profile, and onboarding state
 - show grouped source coverage for each cluster
-- request AI analysis when a story is opened
-- render the AI-drafted article, claim ledger, disputes, framing, connections, and predictive panels
-- degrade gracefully when live AI or imagery is unavailable
+- request story analysis when a story is opened
+- render generated article text, claims, disputes, framing, Event Map, watch signals, and ripple effects
+- degrade gracefully when live analysis or imagery is unavailable
 
 ## Intelligence Model
 
@@ -206,17 +263,21 @@ Activated per cluster through `/api/ai/story`.
 
 Outputs:
 
-- AI-drafted article
 - source-backed brief
 - agreed claims
 - disputed claims
 - framing signals
+- Event Map
 - watch signals
 - ripple effects
 
+### Event Map
+
+The Event Map is rendered from the story analysis `topic_map` payload. It shows a central story node, related topics, and labeled edges so readers can inspect relationships without implying a separate graph database runtime.
+
 ### Predictive Layer
 
-The predictive layer is currently generated by structured Codex analysis plus internal story graph heuristics.
+The predictive layer is generated as part of Gemini story analysis and normalized for the UI.
 
 Outputs:
 
@@ -226,10 +287,9 @@ Outputs:
 
 Important accuracy note:
 
-- this repository does **not** currently run a dedicated MiroFish backend
-- it does **not** currently include Neo4j or Ollama runtime orchestration
-
-That means the current predictive layer is real AI output, but not a separate graph-runtime integration.
+- this repository does not currently include a dedicated graph database runtime
+- this repository does not currently include local model orchestration
+- predictions are generated story-analysis fields, not a separate forecasting service
 
 ## Cache And Refresh Model
 
@@ -242,31 +302,36 @@ Behavior:
 - manual refresh is exposed through `POST /api/refresh`
 - stale caches can still be served while a newer refresh is in progress
 
-This keeps the homepage stable while preserving near-live updates.
-
 ## Failure Modes And Degradation
 
-### Provider degradation
+### Provider Degradation
 
-- if NewsAPI is unavailable, discovery falls back to Google News and RSS
+- if NewsAPI is unavailable, discovery can fall back to Google News and RSS
 - if feed quality is poor, metadata hydration fills in missing fields when possible
 
-### Image degradation
+### Image Degradation
 
 - remote hotlinking failures are routed through `/api/image`
 - if a cluster still lacks imagery, the frontend requests `/api/article-preview`
 
-### AI degradation
+### Analysis Degradation
 
-- if Codex is unavailable or times out, the story view still renders heuristic intelligence
-- the UI upgrades in place when live AI analysis succeeds
+- if Gemini is unavailable or returns invalid output, the story view can still render fallback intelligence
+- the UI upgrades in place when generated analysis succeeds
+
+### Auth Degradation
+
+- if Google OAuth is not configured, it is not advertised as an available option
+- development email-code sign-in is separate from production Google OAuth
+- profile routes require a valid session
 
 ## Operational Reality
 
-This codebase is production-oriented in structure, but a few boundaries remain visible:
+The current codebase is deployable as an Express/Vercel app backed by Postgres and Gemini. The main implementation boundaries are:
 
 - clustering is heuristic rather than embedding-native
-- predictive intelligence is generated by Codex-backed structured analysis, not a separate graph runtime
+- story analysis is Gemini-backed structured generation, not a separate graph runtime
+- story and article clusters are cached rather than stored in normalized Postgres story tables
 - the repository does not yet include an automated test suite
 
-Those boundaries do not change the core architecture: Zelthir is already a real news platform with a real AI intelligence path.
+Those boundaries do not change the core architecture: Zelthir is a real news app with provider ingestion, cached clusters, production auth/profile persistence, and generated story intelligence.

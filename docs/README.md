@@ -1,31 +1,22 @@
 # Zelthir Docs
 
-This directory contains the product-facing technical documentation for Zelthir.
+This directory holds product and deployment documentation for the current Zelthir app.
 
-## Included Documents
+## Included Files
 
-- `ARCHITECTURE.md`
-  System architecture, data flow, runtime components, AI path, and operational behavior.
-- `screenshots/`
-  Local screenshots captured during development and verification.
+- `ARCHITECTURE.md`: Architecture notes for the deployed app, including runtime components, data flow, ingestion, analysis, auth, and operational behavior.
+- `screenshots/`: Local screenshots captured during product and verification passes.
 
-## In-App Docs Surface
+## Served Docs
 
-The repository serves its own docs viewer at:
+The backend serves the documentation viewer at:
 
-- `http://127.0.0.1:3210/docs/index.html`
+- `http://127.0.0.1:3210/docs/`
 
-That viewer renders the source PRD from:
-
-- `TECHNICAL_PRD.md`
+That viewer is implemented by the root `index.html`, `app.js`, and `styles.css` files and renders `PRODUCT_ARCHITECTURE.md`.
 
 ## Scope
 
-These docs are meant to describe the current Zelthir platform as implemented in this repository:
+These docs should describe the app that exists in this repository: the news UI, deployment flow, Postgres-backed auth and profiles, source ingestion, Gemini story analysis, and operational checks.
 
-- live news ingestion and clustering
-- newsroom UI
-- Codex-backed story intelligence
-- predictive watch-signal and ripple-effect generation
-
-They do not document a separate MiroFish runtime because that integration is not currently part of the shipped codebase.
+Keep this directory focused on product, architecture, deployment, and verification notes. Local work plans, scratch logs, and one-off implementation notes should stay out of tracked docs.
