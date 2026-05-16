@@ -383,7 +383,7 @@ function setOAuthStateCookie(res, state, config) {
     expires: new Date(Date.now() + GOOGLE_OAUTH_STATE_TTL_MS),
     httpOnly: true,
     path: "/api/auth/google",
-    sameSite: "lax",
+    sameSite: config.sameSite,
     secure: config.secure,
   });
 }
@@ -392,7 +392,7 @@ function clearOAuthStateCookie(res, config) {
   res.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, {
     httpOnly: true,
     path: "/api/auth/google",
-    sameSite: "lax",
+    sameSite: config.sameSite,
     secure: config.secure,
   });
 }

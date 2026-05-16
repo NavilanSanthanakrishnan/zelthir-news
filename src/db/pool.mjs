@@ -12,6 +12,9 @@ if (!databaseUrl) {
 
 export const pool = new Pool({
   connectionString: databaseUrl,
+  ssl: shouldUseSsl(databaseUrl, process.env)
+    ? { rejectUnauthorized: false }
+    : undefined,
 });
 
 pool.on("error", () => {
@@ -24,4 +27,18 @@ export function query(text, params) {
 
 export function closePool() {
   return pool.end();
+}
+
+function shouldUseSsl(value, env) {
+  if (env.PGSSL?.trim().toLowerCase() === "true") {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(value);
+    const sslMode = parsed.searchParams.get("sslmode")?.toLowerCase();
+    return ["require", "verify-ca", "verify-full", "no-verify"].includes(sslMode || "");
+  } catch {
+    return false;
+  }
 }

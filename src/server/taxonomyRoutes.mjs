@@ -4,10 +4,11 @@ const PERSONAS = [
   { id: "general_reader", label: "General reader" },
   { id: "local_resident", label: "Local resident" },
   { id: "policy_watcher", label: "Policy watcher" },
-  { id: "founder", label: "Founder" },
-  { id: "operator", label: "Operator" },
-  { id: "investor", label: "Investor" },
+  { id: "parent_caregiver", label: "Parent or caregiver" },
+  { id: "educator", label: "Educator" },
+  { id: "business_reader", label: "Business reader" },
   { id: "student", label: "Student" },
+  { id: "civic_organizer", label: "Civic organizer" },
 ];
 
 const INTERESTS = [

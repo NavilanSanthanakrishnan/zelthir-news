@@ -8,6 +8,7 @@
     "dev:frontend": "vite --host 127.0.0.1 --port 5173",
     "dev:backend": "node server.mjs",
     "dev:db": "docker compose up postgres",
+    "build:frontend": "vite build",
     "db:migrate": "node src/db/migrate.mjs",
     "check:health": "node scripts/check-health.mjs",
     "check:ai": "node scripts/check-gemini-analysis.mjs",

@@ -68,10 +68,10 @@ function countClusterImages(home) {
 
 function shouldRefreshBeforeResponding(home) {
   return (
-    process.env.VERCEL &&
-    (home?.provider === "sample" ||
-      !home?.sections?.usaDailyBriefing?.storyClusters?.length ||
-      countClusterImages(home) < 3)
+    isCacheStale(home) ||
+    home?.provider === "sample" ||
+    !home?.sections?.usaDailyBriefing?.storyClusters?.length ||
+    countClusterImages(home) < 3
   );
 }
 
@@ -103,12 +103,6 @@ async function refreshHome(reason = "scheduled") {
   return refreshPromise;
 }
 
-async function ensureFreshHome(home) {
-  if (isCacheStale(home)) {
-    void refreshHome("stale-cache");
-  }
-}
-
 app.get("/favicon.ico", (_req, res) => {
   res.status(204).end();
 });
@@ -127,7 +121,6 @@ app.get("/api/home", async (_req, res) => {
   if (shouldRefreshBeforeResponding(home)) {
     home = await refreshHome("request");
   }
-  await ensureFreshHome(home);
   res.json(decorateHome(home));
 });
 
@@ -262,11 +255,7 @@ app.post("/api/refresh", async (_req, res) => {
 async function warmHomeCache() {
   try {
     const cached = await getCachedHome();
-    if (
-      !cached.ok ||
-      !cached.sections?.usaDailyBriefing?.storyClusters?.length ||
-      isCacheStale(cached)
-    ) {
+    if (!cached.ok || shouldRefreshBeforeResponding(cached)) {
       await refreshHome("startup");
     }
   } catch (error) {
@@ -323,10 +312,18 @@ function getAllowedOrigins() {
     "http://localhost:5173",
     "http://127.0.0.1:3210",
     "http://localhost:3210",
-    frontendOrigin,
+    ...parseOriginList(frontendOrigin),
+    ...parseOriginList(process.env.CORS_ORIGINS),
     process.env.API_BASE_URL?.trim(),
     process.env.BACKEND_PUBLIC_URL?.trim(),
   ].filter(Boolean).map(trimTrailingSlash));
+}
+
+function parseOriginList(value) {
+  return String(value || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 }
 
 function appendVary(currentValue, value) {

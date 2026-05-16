@@ -9,10 +9,12 @@ export function getSessionConfig(env = process.env) {
   const sessionDays = Number.isFinite(parsedDays) && parsedDays > 0
     ? parsedDays
     : DEFAULT_SESSION_DAYS;
+  const sameSite = getSameSiteMode(env);
 
   return {
     cookieName: env.SESSION_COOKIE_NAME || DEFAULT_SESSION_COOKIE_NAME,
     sessionDays,
+    sameSite,
     secure: env.NODE_ENV === "production",
   };
 }
@@ -63,7 +65,7 @@ export function setSessionCookie(res, token, expiresAt, config = getSessionConfi
     expires: expiresAt,
     httpOnly: true,
     path: "/",
-    sameSite: "lax",
+    sameSite: config.sameSite,
     secure: config.secure,
   });
 }
@@ -72,7 +74,38 @@ export function clearSessionCookie(res, config = getSessionConfig()) {
   res.clearCookie(config.cookieName, {
     httpOnly: true,
     path: "/",
-    sameSite: "lax",
+    sameSite: config.sameSite,
     secure: config.secure,
   });
+}
+
+function getSameSiteMode(env) {
+  const configured = env.SESSION_COOKIE_SAME_SITE?.trim().toLowerCase();
+  if (["lax", "strict", "none"].includes(configured)) {
+    return configured;
+  }
+
+  if (env.NODE_ENV === "production" && isCrossOriginApp(env)) {
+    return "none";
+  }
+
+  return "lax";
+}
+
+function isCrossOriginApp(env) {
+  const frontendOrigin = normalizeOrigin(env.FRONTEND_ORIGIN);
+  const backendOrigin = normalizeOrigin(env.API_BASE_URL || env.BACKEND_PUBLIC_URL);
+  return Boolean(frontendOrigin && backendOrigin && frontendOrigin !== backendOrigin);
+}
+
+function normalizeOrigin(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return "";
+  }
+
+  try {
+    return new URL(value.trim()).origin;
+  } catch {
+    return "";
+  }
 }

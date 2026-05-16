@@ -4,10 +4,11 @@ const requiredPersonas = [
   "general_reader",
   "local_resident",
   "policy_watcher",
-  "founder",
-  "operator",
-  "investor",
+  "parent_caregiver",
+  "educator",
+  "business_reader",
   "student",
+  "civic_organizer",
 ];
 
 const requiredInterests = [

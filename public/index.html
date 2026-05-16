@@ -39,7 +39,6 @@
               <span id="accountLabel">Sign in</span>
             </button>
             <button id="signOutButton" class="sign-out-button" type="button" hidden>Sign out</button>
-            <button id="refreshButton" class="refresh-button" type="button">Refresh</button>
           </div>
         </div>
 
@@ -215,13 +214,16 @@
                   </label>
 
                   <label class="control">
-                    <span class="control__label">Role</span>
+                    <span class="control__label">Perspective</span>
                     <select id="roleSelect" class="control__select">
-                      <option value="founder">Founder</option>
-                      <option value="engineer">Operator</option>
-                      <option value="investor">Investor</option>
-                      <option value="resident">Local Resident</option>
+                      <option value="general_reader">General Reader</option>
+                      <option value="local_resident">Local Resident</option>
+                      <option value="policy_watcher">Policy Watcher</option>
+                      <option value="parent_caregiver">Parent or Caregiver</option>
+                      <option value="educator">Educator</option>
+                      <option value="business_reader">Business Reader</option>
                       <option value="student">Student</option>
+                      <option value="civic_organizer">Civic Organizer</option>
                     </select>
                   </label>
 
@@ -273,20 +275,20 @@
 
                 <div class="engine-grid">
                   <article class="engine-card">
-                    <h3>1. Gather</h3>
-                    <p>Bring related reporting from different publishers into one place.</p>
+                    <h3>1. Start With The Story</h3>
+                    <p>Bring related reporting from different publishers into one clear view.</p>
                   </article>
                   <article class="engine-card">
-                    <h3>2. Compare</h3>
-                    <p>Show the claims, details, and source angles that matter most.</p>
+                    <h3>2. Find The Shared Facts</h3>
+                    <p>Highlight the details that show up again and again across coverage.</p>
                   </article>
                   <article class="engine-card">
-                    <h3>3. Connect</h3>
-                    <p>Map nearby topics so you can see how one event may affect another.</p>
+                    <h3>3. Show The Differences</h3>
+                    <p>Separate what sources agree on from what is still uncertain or framed differently.</p>
                   </article>
                   <article class="engine-card">
-                    <h3>4. Watch</h3>
-                    <p>Highlight what could change next and which signals deserve another look.</p>
+                    <h3>4. Connect What Comes Next</h3>
+                    <p>Link nearby topics and next signals so the story is easier to keep following.</p>
                   </article>
                 </div>
               </section>
@@ -532,24 +534,25 @@
           <label class="field-control">
             <span>Perspective</span>
             <select id="profilePersona">
-              <option value="reader">General reader</option>
-              <option value="founder">Founder</option>
-              <option value="engineer">Operator</option>
-              <option value="investor">Investor</option>
-              <option value="resident">Local resident</option>
+              <option value="general_reader">General reader</option>
+              <option value="local_resident">Local resident</option>
+              <option value="policy_watcher">Policy watcher</option>
+              <option value="parent_caregiver">Parent or caregiver</option>
+              <option value="educator">Educator</option>
+              <option value="business_reader">Business reader</option>
               <option value="student">Student</option>
+              <option value="civic_organizer">Civic organizer</option>
             </select>
           </label>
-          <div class="profile-location">
-            <label class="field-control">
-              <span>City</span>
-              <input id="profileLocationCity" type="text" autocomplete="address-level2" placeholder="San Francisco" />
-            </label>
-            <label class="field-control">
-              <span>State</span>
-              <input id="profileLocationState" type="text" autocomplete="address-level1" placeholder="CA" />
-            </label>
-          </div>
+          <label class="field-control">
+            <span>Preferred locations</span>
+            <textarea
+              id="profileLocationsInput"
+              rows="4"
+              autocomplete="street-address"
+              placeholder="San Francisco, CA&#10;New York, NY&#10;Texas"
+            ></textarea>
+          </label>
           <fieldset class="profile-interests">
             <legend>Interests</legend>
             <div class="interest-chips">
@@ -756,16 +759,6 @@
       </article>
     </template>
 
-    <template id="timelineItemTemplate">
-      <article class="timeline-item">
-        <div class="timeline-item__time"></div>
-        <div class="timeline-item__content">
-          <h4 class="timeline-item__title"></h4>
-          <p class="timeline-item__meta"></p>
-        </div>
-      </article>
-    </template>
-
     <template id="forecastColumnTemplate">
       <article class="forecast-column">
         <h4 class="forecast-column__title"></h4>
@@ -780,6 +773,11 @@
       </article>
     </template>
 
-    <script src="./app.js"></script>
+    <script>
+      window.ZELTHIR_CONFIG = {
+        apiBaseUrl: "%VITE_API_BASE_URL%",
+      };
+    </script>
+    <script type="module" src="./app.js"></script>
   </body>
 </html>

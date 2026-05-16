@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+.git
+.vercel
+data/
+dist/
+logs/
+node_modules/
+npm-debug.log*
+plan.md

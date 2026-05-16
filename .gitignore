@@ -1,9 +1,11 @@
 .env
 node_modules
+dist/
 .DS_Store
 data/latest-top-stories.json
 data/homepage-cache.json
 .vercel
+supabase/.temp/
 plan.md
 *.log
 logs/

@@ -1,5 +1,19 @@
 const now = new Date().toISOString();
 
+const sourceHomeUrls = {
+  "ABC News": "https://abcnews.go.com/US",
+  "Al Jazeera": "https://www.aljazeera.com/news/",
+  Axios: "https://www.axios.com/",
+  "BBC News": "https://www.bbc.com/news",
+  "CBS News": "https://www.cbsnews.com/",
+  CNN: "https://www.cnn.com/",
+  "NPR": "https://www.npr.org/sections/national/",
+  Politico: "https://www.politico.com/",
+  Reuters: "https://www.reuters.com/",
+  "The Guardian": "https://www.theguardian.com/international",
+  "The Hill": "https://thehill.com/",
+};
+
 function createCluster(id, section, canonicalTitle, summary, whyItMatters, sourceNames) {
   return {
     clusterId: id,
@@ -11,17 +25,20 @@ function createCluster(id, section, canonicalTitle, summary, whyItMatters, sourc
     sourceCount: sourceNames.length,
     articleCount: sourceNames.length + 2,
     latestPublishedAt: now,
-    articles: sourceNames.map((source, index) => ({
-      id: `${id}-${index}`,
-      source,
-      title: `${canonicalTitle} coverage from ${source}`,
-      url: "https://example.com/",
-      publishedAt: now,
-      snippet: `Representative coverage from ${source}.`,
-      imageUrl: null,
-      language: "en",
-      host: "example.com",
-    })),
+    articles: sourceNames.map((source, index) => {
+      const url = sourceHomeUrls[source] || "https://news.google.com/";
+      return {
+        id: `${id}-${index}`,
+        source,
+        title: `${canonicalTitle} coverage from ${source}`,
+        url,
+        publishedAt: now,
+        snippet: `Representative coverage from ${source}.`,
+        imageUrl: null,
+        language: "en",
+        host: new URL(url).hostname.replace(/^www\./, ""),
+      };
+    }),
   };
 }
 

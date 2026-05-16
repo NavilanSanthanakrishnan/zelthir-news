@@ -1,20 +1,10 @@
 {
-  "version": 2,
-  "functions": {
-    "server.mjs": {
-      "maxDuration": 60
-    }
-  },
-  "builds": [
+  "buildCommand": "npm run build:frontend",
+  "outputDirectory": "dist",
+  "rewrites": [
     {
-      "src": "server.mjs",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server.mjs"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

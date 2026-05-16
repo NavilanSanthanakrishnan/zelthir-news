@@ -1,4 +1,28 @@
-const refreshButton = document.getElementById("refreshButton");
+const appConfig = window.ZELTHIR_CONFIG || {};
+const apiBaseUrl = normalizeApiBaseUrl(appConfig.apiBaseUrl || "");
+
+function normalizeApiBaseUrl(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return "";
+  }
+  if (value.includes("%")) {
+    return "";
+  }
+  return value.trim().replace(/\/+$/, "");
+}
+
+function apiUrl(path) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return apiBaseUrl ? `${apiBaseUrl}${normalizedPath}` : normalizedPath;
+}
+
+function apiFetch(path, options = {}) {
+  return fetch(apiUrl(path), {
+    ...options,
+    credentials: options.credentials || "include",
+  });
+}
+
 const providerLabel = document.getElementById("providerLabel");
 const generatedAtLabel = document.getElementById("generatedAtLabel");
 const refreshModeLabel = document.getElementById("refreshModeLabel");
@@ -46,6 +70,7 @@ const profileDisplayName = document.getElementById("profileDisplayName");
 const profilePersona = document.getElementById("profilePersona");
 const profileLocationCity = document.getElementById("profileLocationCity");
 const profileLocationState = document.getElementById("profileLocationState");
+const profileLocationsInput = document.getElementById("profileLocationsInput");
 const profileStatus = document.getElementById("profileStatus");
 
 const leadImage = document.getElementById("leadImage");
@@ -88,7 +113,6 @@ const framingMatrix = document.getElementById("framingMatrix");
 const primarySourceLayer = document.getElementById("primarySourceLayer");
 const undercoveredMix = document.getElementById("undercoveredMix");
 const connectionGraph = document.getElementById("connectionGraph");
-const storyTimeline = document.getElementById("storyTimeline");
 const topicMapDetails = document.getElementById("topicMapDetails");
 const rippleEffects = document.getElementById("rippleEffects");
 const watchSignals = document.getElementById("watchSignals");
@@ -216,10 +240,11 @@ const PERSONA_LABELS = {
   general_reader: "General Reader",
   local_resident: "Local Resident",
   policy_watcher: "Policy Watcher",
-  founder: "Founder",
-  operator: "Operator",
-  investor: "Investor",
+  parent_caregiver: "Parent or Caregiver",
+  educator: "Educator",
+  business_reader: "Business Reader",
   student: "Student",
+  civic_organizer: "Civic Organizer",
 };
 
 const ROLE_COPY = {
@@ -243,6 +268,34 @@ const ROLE_COPY = {
     policy: "This can shift agency behavior, court strategy, enforcement priorities, and political coalitions.",
     markets: "This matters because economic pressure often turns into policy pressure when costs or risks become visible.",
     general: "This story is worth tracking for institutional response, accountability, and whether officials change course.",
+  },
+  parent_caregiver: {
+    disaster: "This matters because safety, school schedules, health guidance, and local services can change quickly.",
+    conflict: "This matters because public safety, travel, and community messaging can shift as the story develops.",
+    policy: "This can affect schools, family services, local rules, and the institutions people rely on day to day.",
+    markets: "This can show up in household costs, job conditions, and service availability faster than expected.",
+    general: "This story is worth tracking because family routines often feel the downstream effects early.",
+  },
+  educator: {
+    disaster: "This matters because schools, campuses, transport, and safety guidance can change quickly during recovery.",
+    conflict: "This matters because conflict and policy shifts can affect students, travel, safety guidance, and classroom context.",
+    policy: "This can touch schools, admissions, funding, campus rules, and the tone institutions set around access.",
+    markets: "This matters because job markets, budgets, and public funding often move with stories like this.",
+    general: "This matters because the next-order effects often reach students and institutions before the debate settles.",
+  },
+  business_reader: {
+    disaster: "This matters because major disruptions can hit costs, insurance, infrastructure, and local operating conditions quickly.",
+    conflict: "This is a risk signal story: it can move sectors, supply chains, pricing, and confidence before the details settle.",
+    policy: "This matters because policy and court shifts often change incentives, costs, and institutional behavior.",
+    markets: "This is directly tied to sentiment, sector rotation, and what risk markets think happens next.",
+    general: "This story is worth tracking because second-order effects can shift budgets, prices, and public attention.",
+  },
+  civic_organizer: {
+    disaster: "This matters because safety, mutual aid, services, and recovery conditions often become the real story after the first alert.",
+    conflict: "This matters because public messaging, community safety, and local organizing priorities can change as the story evolves.",
+    policy: "This can shift what residents ask from agencies, schools, courts, and elected officials.",
+    markets: "This can affect public budgets, service pressure, and the costs people feel in daily life.",
+    general: "This matters because it shapes the public reality communities organize around, not just the headline.",
   },
   founder: {
     disaster: "This matters because disasters can disrupt supply chains, infrastructure, insurance costs, and local operating conditions quickly.",
@@ -282,6 +335,10 @@ const ROLE_COPY = {
 };
 ROLE_COPY.resident = ROLE_COPY.local_resident;
 ROLE_COPY.engineer = ROLE_COPY.operator;
+ROLE_COPY.reader = ROLE_COPY.general_reader;
+ROLE_COPY.investor = ROLE_COPY.business_reader;
+ROLE_COPY.founder = ROLE_COPY.business_reader;
+ROLE_COPY.operator = ROLE_COPY.business_reader;
 
 const LOCATION_COPY = {
   sf: "In San Francisco, the most relevant angle is usually regulation, startup sentiment, technology infrastructure, and market tone.",
@@ -393,6 +450,20 @@ function ensureSelectOptions(select, options) {
   }
 }
 
+function normalizePersonaValue(value) {
+  const aliases = {
+    reader: "general_reader",
+    resident: "local_resident",
+    founder: "business_reader",
+    investor: "business_reader",
+    engineer: "business_reader",
+    operator: "business_reader",
+  };
+  const normalized = String(value || "").trim().toLowerCase();
+  const persona = aliases[normalized] || normalized;
+  return PERSONA_LABELS[persona] ? persona : "general_reader";
+}
+
 function normalizeProfile(profile = {}) {
   const interests = Array.isArray(profile.interests) && profile.interests.length
     ? profile.interests
@@ -400,7 +471,7 @@ function normalizeProfile(profile = {}) {
   const locations = Array.isArray(profile.locations) ? profile.locations.filter(Boolean) : [];
   return {
     displayName: profile.displayName || "",
-    persona: profile.persona || state.prefs.role || "general_reader",
+    persona: normalizePersonaValue(profile.persona || state.prefs.role || "general_reader"),
     interests,
     locations,
   };
@@ -433,6 +504,35 @@ function locationToLabel(location) {
   return location.state || location.city || "";
 }
 
+function locationsToProfileText(locations = []) {
+  return locations
+    .map(locationToLabel)
+    .filter(Boolean)
+    .join("\n");
+}
+
+function parseProfileLocationLine(value) {
+  const line = cleanText(value);
+  if (!line) return null;
+  const commaMatch = line.match(/^(.+?),\s*([A-Za-z][A-Za-z .-]{1,23})$/);
+  if (commaMatch) {
+    return {
+      type: "city",
+      city: cleanText(commaMatch[1]),
+      state: cleanText(commaMatch[2]).toUpperCase(),
+      country: "US",
+      label: `${cleanText(commaMatch[1])}, ${cleanText(commaMatch[2]).toUpperCase()}`,
+    };
+  }
+
+  return {
+    type: "state",
+    state: line.toUpperCase(),
+    country: "US",
+    label: line,
+  };
+}
+
 function selectedLocationToProfileLocation() {
   const presets = {
     sf: { type: "city", city: "San Francisco", state: "CA", country: "US", label: "San Francisco, CA" },
@@ -450,7 +550,30 @@ function profileLocationToPreset(location) {
   return "global";
 }
 
+function profileLocationPresets(prefs) {
+  return new Set([
+    prefs.location,
+    ...(prefs.locations || []).map(profileLocationToPreset),
+  ].filter(Boolean));
+}
+
+function buildLocationCopy(prefs) {
+  const labels = (prefs.locations || []).map(locationToLabel).filter(Boolean);
+  if (labels.length > 1) {
+    return `Your saved places (${labels.slice(0, 3).join(", ")}) help prioritize stories with local consequences.`;
+  }
+  return LOCATION_COPY[prefs.location] || LOCATION_COPY.global;
+}
+
 function profileFormLocations() {
+  const locationLines = (profileLocationsInput?.value || "")
+    .split(/[\n;]/)
+    .map(parseProfileLocationLine)
+    .filter(Boolean);
+  if (locationLines.length) {
+    return locationLines;
+  }
+
   const city = cleanText(profileLocationCity?.value || "");
   const stateCodes = cleanText(profileLocationState?.value || "")
     .split(/[;,]/)
@@ -502,7 +625,7 @@ function profileToPayload() {
     : [selectedLocationToProfileLocation()].filter(Boolean);
   return {
     displayName: cleanText(profileDisplayName?.value || state.profile?.displayName || ""),
-    persona: profilePersona?.value || state.prefs.role || "general_reader",
+    persona: normalizePersonaValue(profilePersona?.value || state.prefs.role || "general_reader"),
     interests: [...state.prefs.interests],
     locations,
   };
@@ -534,6 +657,7 @@ function applyProfile(profile) {
 
   if (profileDisplayName) profileDisplayName.value = normalized.displayName || "";
   if (profilePersona) profilePersona.value = normalized.persona;
+  if (profileLocationsInput) profileLocationsInput.value = locationsToProfileText(normalized.locations);
   if (profileLocationCity) profileLocationCity.value = primaryLocation?.city || "";
   if (profileLocationState) profileLocationState.value = profileLocationStateValue(primaryLocation);
   renderAccountState();
@@ -544,11 +668,23 @@ function applyProfile(profile) {
 }
 
 function renderAccountState() {
-  const signedInLabel = state.profile?.displayName || state.user?.email || "Account";
+  const signedInLabel = state.profile?.displayName || (state.user ? "Account" : "Sign in");
   setText(accountLabel, state.user ? signedInLabel : "Sign in");
+  if (accountButton) {
+    accountButton.title = state.user?.email || "Sign in";
+  }
   if (signOutButton) {
     signOutButton.hidden = !state.user;
   }
+}
+
+function resetAuthFlow() {
+  state.authEmail = "";
+  if (emailInput) emailInput.value = "";
+  if (loginCodeInput) loginCodeInput.value = "";
+  if (loginCodeForm) loginCodeForm.hidden = true;
+  emailLoginForm?.classList.remove("auth-form--compact");
+  setStatus(authStatus, "");
 }
 
 function pickBooleanOption(payload, keys, fallback) {
@@ -591,7 +727,7 @@ function applyAuthOptions(options = {}) {
 
 async function loadAuthOptions() {
   try {
-    const response = await fetch("/api/auth/options");
+    const response = await apiFetch("/api/auth/options");
     if (!response.ok) {
       applyAuthOptions();
       return;
@@ -607,6 +743,8 @@ function openOptionalModal(modal) {
   if (!modal) return;
   modal.hidden = false;
   document.body.classList.add("modal-open");
+  const panel = modal.querySelector(".app-modal__panel, .coverage-modal__panel");
+  panel?.scrollTo({ top: 0, left: 0 });
 }
 
 function closeOptionalModal(modal) {
@@ -622,12 +760,13 @@ function openAccountFlow() {
     openOptionalModal(onboardingModal);
     return;
   }
+  resetAuthFlow();
   openOptionalModal(authModal);
 }
 
 async function loadMe() {
   try {
-    const response = await fetch("/api/me");
+    const response = await apiFetch("/api/me");
     const payload = await response.json();
     if (!payload?.ok) return;
     state.user = payload.user || null;
@@ -646,7 +785,7 @@ async function saveProfilePrefs(statusNode = profileStatus) {
   const payload = profileToPayload();
   setStatus(statusNode, "Saving...");
   try {
-    const response = await fetch("/api/me/profile", {
+    const response = await apiFetch("/api/me/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -948,7 +1087,7 @@ async function getArticlePreview(url) {
     return articlePreviewCache.get(url);
   }
 
-  const request = fetch(`/api/article-preview?url=${encodeURIComponent(url)}`)
+  const request = apiFetch(`/api/article-preview?url=${encodeURIComponent(url)}`)
     .then((response) => (response.ok ? response.json() : null))
     .catch(() => null);
 
@@ -1062,7 +1201,7 @@ function setImageState(imageEl, placeholderEl, imageUrl, alt, fallbackArticleUrl
       return;
     }
 
-    const proxiedUrl = `/api/image?url=${encodeURIComponent(url)}`;
+    const proxiedUrl = apiUrl(`/api/image?url=${encodeURIComponent(url)}`);
     tryPaintableImage(proxiedUrl, () => {
       tryPaintableImage(url, null);
     });
@@ -1306,7 +1445,7 @@ function extractEntities(cluster) {
 }
 
 function buildEntityGraph(cluster, entities) {
-  const nodes = [{ id: "event", label: getDisplayTitle(cluster).slice(0, 46), weight: cluster.sourceCount }];
+  const nodes = [{ id: "story-core", label: getDisplayTitle(cluster).slice(0, 46), weight: cluster.sourceCount }];
   const edges = [];
   const articleTexts = uniqueArticles(cluster.articles).map((article) => `${article.title} ${article.snippet || ""}`);
 
@@ -1318,7 +1457,7 @@ function buildEntityGraph(cluster, entities) {
     });
 
     edges.push({
-      source: "event",
+      source: "story-core",
       target: `entity-${index}`,
       weight: Math.max(1, entity.count),
     });
@@ -1352,14 +1491,14 @@ function buildFallbackTopicMap(cluster, section, entities) {
     .filter((source, index, items) => items.indexOf(source) === index)
     .slice(0, 4);
   const center = {
-    id: "event",
+    id: "story-core",
     label: getDisplayTitle(cluster).slice(0, 64),
     summary: buildDisplaySummary(cluster),
   };
   const topics = entities.slice(0, 6).map((entity, index) => ({
     id: `topic-${index + 1}`,
     label: entity.name,
-    type: "unknown",
+    type: "connected topic",
     summary: `${entity.name} appears across the clustered coverage.`,
     weight: Math.min(100, Math.max(20, entity.count * 12)),
     sourceNames,
@@ -1373,7 +1512,7 @@ function buildFallbackTopicMap(cluster, section, entities) {
     topics.push({
       id: "coverage-context",
       label: sectionLabels[section.id] || section.title || "Coverage context",
-      type: "unknown",
+      type: "coverage context",
       summary: cluster.whyItMatters || "This story is connected to the surrounding coverage context.",
       weight: 50,
       sourceNames,
@@ -1406,7 +1545,7 @@ function topicMapToGraph(topicMap) {
     nodes: [
       {
         id: topicMap.center.id || "event",
-        label: topicMap.center.label || "Main event",
+        label: topicMap.center.label || "Main story",
         weight: 8,
       },
       ...(topicMap.topics || []).map((topic) => ({
@@ -1867,7 +2006,7 @@ async function loadAiIntelligence(clusterId) {
     briefConfidence.textContent = "Generating live analysis...";
   }
 
-  const request = fetch(`/api/ai/story?clusterId=${encodeURIComponent(clusterId)}`)
+  const request = apiFetch(`/api/ai/story?clusterId=${encodeURIComponent(clusterId)}`)
     .then((response) => (response.ok ? response.json() : null))
     .then((payload) => {
       if (!payload?.ok || !payload.analysis) {
@@ -1932,8 +2071,8 @@ function buildPersonalWhy(entry, prefs, intelligence) {
   const roleCopy =
     ROLE_COPY[prefs.role]?.[intelligence.theme] ||
     ROLE_COPY[prefs.role]?.general ||
-    ROLE_COPY.founder.general;
-  const locationCopy = LOCATION_COPY[prefs.location] || LOCATION_COPY.global;
+    ROLE_COPY.general_reader.general;
+  const locationCopy = buildLocationCopy(prefs);
   const interestSentence = matchedInterests.length
     ? `Why this is on your feed: it intersects with ${matchedInterests.slice(0, 3).join(", ")}.`
     : `Why this is on your feed: it carries strong ${THEME_RELEVANCE[intelligence.theme] || THEME_RELEVANCE.general}.`;
@@ -1944,32 +2083,31 @@ function buildPersonalWhy(entry, prefs, intelligence) {
 function scorePersonalEntry(entry, prefs) {
   const intelligence = getStoryIntelligence(entry.cluster, entry.section);
   const interestScore = getInterestScore(entry.cluster, prefs.interests);
-  const locationBoost = prefs.location === "global"
+  const locationPresets = profileLocationPresets(prefs);
+  const locationBoost = locationPresets.has("global")
     ? 3
     : /san francisco|silicon valley|california|startup|ai|tech/i.test(
         `${entry.cluster.canonicalTitle} ${entry.cluster.summary}`
-      ) && prefs.location === "sf"
+      ) && locationPresets.has("sf")
       ? 6
       : /washington|white house|senate|court|judge|administration/i.test(
           `${entry.cluster.canonicalTitle} ${entry.cluster.summary}`
-        ) && prefs.location === "dc"
+        ) && locationPresets.has("dc")
         ? 6
         : /market|wall street|finance|investor|business/i.test(
             `${entry.cluster.canonicalTitle} ${entry.cluster.summary}`
-          ) && prefs.location === "nyc"
+          ) && locationPresets.has("nyc")
           ? 6
           : 0;
-  const roleBoost = intelligence.theme === "policy" && prefs.role === "founder"
+  const roleBoost = intelligence.theme === "policy" && ["policy_watcher", "civic_organizer"].includes(prefs.role)
     ? 4
-    : intelligence.theme === "markets" && prefs.role === "investor"
+    : intelligence.theme === "markets" && prefs.role === "business_reader"
       ? 5
-      : intelligence.theme === "conflict" && ["resident", "local_resident"].includes(prefs.role)
+      : intelligence.theme === "conflict" && ["resident", "local_resident", "civic_organizer"].includes(prefs.role)
         ? 4
-      : intelligence.theme === "policy" && prefs.role === "student"
+      : intelligence.theme === "policy" && ["student", "educator", "parent_caregiver"].includes(prefs.role)
           ? 4
-          : intelligence.theme === "policy" && prefs.role === "policy_watcher"
-            ? 5
-          : intelligence.theme === "markets" && ["engineer", "operator"].includes(prefs.role)
+          : intelligence.theme === "markets" && ["engineer", "operator", "founder", "investor"].includes(prefs.role)
             ? 3
             : 0;
 
@@ -2262,6 +2400,9 @@ function renderLedger(container, items, fallbackTitle) {
     sourceContainer.innerHTML = "";
 
     for (const source of item.sources || []) {
+      if (!source?.url) {
+        continue;
+      }
       const link = document.createElement("a");
       link.className = "source-link";
       link.href = source.url;
@@ -2332,6 +2473,9 @@ function renderCoverageSplit(split) {
       links.appendChild(empty);
     } else {
       for (const source of bucket.sourceLinks) {
+        if (!source?.url) {
+          continue;
+        }
         const link = document.createElement("a");
         link.className = "source-link";
         link.href = source.url;
@@ -2420,42 +2564,70 @@ function renderGraph(graph) {
   }
 }
 
+function formatRelationship(value) {
+  const relationship = cleanText(String(value || "connected topic").replace(/_/g, " "));
+  return relationship.charAt(0).toUpperCase() + relationship.slice(1);
+}
+
+function appendTopicSources(container, sources = []) {
+  const linkedSources = sources.filter((source) => source?.url && source?.name).slice(0, 4);
+  if (!linkedSources.length) {
+    return;
+  }
+
+  for (const source of linkedSources) {
+    const link = document.createElement("a");
+    link.className = "source-link";
+    link.href = source.url;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = source.name;
+    container.appendChild(link);
+  }
+}
+
 function renderTopicMapDetails(topicMap) {
-  const host = topicMapDetails || storyTimeline;
+  const host = topicMapDetails;
   if (!host) return;
   host.innerHTML = "";
 
   if (!topicMap?.center || !(topicMap.topics || []).length) {
-    host.innerHTML = '<div class="empty-state">No event map is available yet.</div>';
+    host.innerHTML = '<div class="empty-state">No topic connections are available yet.</div>';
     return;
   }
 
+  const edgesByTarget = new Map((topicMap.edges || []).map((edge) => [edge.target, edge]));
   const center = document.createElement("article");
-  center.className = "timeline-item";
+  center.className = "topic-connection topic-connection--center";
   center.innerHTML = `
-    <div class="timeline-item__time">Event</div>
-    <div class="timeline-item__content">
-      <h4 class="timeline-item__title"></h4>
-      <p class="timeline-item__meta"></p>
+    <div class="topic-connection__label">Main story</div>
+    <div class="topic-connection__content">
+      <h4 class="topic-connection__title"></h4>
+      <p class="topic-connection__meta"></p>
     </div>
   `;
-  center.querySelector(".timeline-item__title").textContent = topicMap.center.label;
-  center.querySelector(".timeline-item__meta").textContent = topicMap.center.summary;
+  center.querySelector(".topic-connection__title").textContent = topicMap.center.label;
+  center.querySelector(".topic-connection__meta").textContent = topicMap.center.summary;
   host.appendChild(center);
 
   for (const topic of topicMap.topics || []) {
+    const edge = edgesByTarget.get(topic.id);
     const node = document.createElement("article");
-    node.className = "timeline-item";
+    node.className = "topic-connection";
     node.innerHTML = `
-      <div class="timeline-item__time"></div>
-      <div class="timeline-item__content">
-        <h4 class="timeline-item__title"></h4>
-        <p class="timeline-item__meta"></p>
+      <div class="topic-connection__label"></div>
+      <div class="topic-connection__content">
+        <h4 class="topic-connection__title"></h4>
+        <p class="topic-connection__meta"></p>
+        <div class="source-links topic-connection__sources"></div>
       </div>
     `;
-    node.querySelector(".timeline-item__time").textContent = topic.type || "topic";
-    node.querySelector(".timeline-item__title").textContent = topic.label;
-    node.querySelector(".timeline-item__meta").textContent = topic.summary || "Connected to the main event.";
+    node.querySelector(".topic-connection__label").textContent =
+      `${formatRelationship(edge?.relationship || topic.type)} • ${edge?.supportCount || topic.sourceNames?.length || 1} sources`;
+    node.querySelector(".topic-connection__title").textContent = topic.label;
+    node.querySelector(".topic-connection__meta").textContent =
+      edge?.summary || topic.summary || "Connected to the main story.";
+    appendTopicSources(node.querySelector(".topic-connection__sources"), topic.sources);
     host.appendChild(node);
   }
 }
@@ -2541,8 +2713,10 @@ function answerStoryQuestion(question, intelligence) {
 
   if (/(why.*matter|why does this matter|so what)/.test(normalized)) {
     const roleText =
-      ROLE_COPY[state.prefs.role]?.[intelligence.theme] || ROLE_COPY[state.prefs.role]?.general;
-    return `${roleText} ${LOCATION_COPY[state.prefs.location] || LOCATION_COPY.global}`;
+      ROLE_COPY[state.prefs.role]?.[intelligence.theme] ||
+      ROLE_COPY[state.prefs.role]?.general ||
+      ROLE_COPY.general_reader.general;
+    return `${roleText} ${buildLocationCopy(state.prefs)}`;
   }
 
   return getDefaultAnswer(intelligence);
@@ -2673,23 +2847,32 @@ function renderHomepage(payload) {
 }
 
 async function loadHomepage() {
-  const response = await fetch("/api/home");
-  const payload = await response.json();
-  renderHomepage(payload);
-}
-
-async function refreshHomepage() {
-  refreshButton.disabled = true;
-  refreshButton.textContent = "Refreshing...";
-
   try {
-    const response = await fetch("/api/refresh", { method: "POST" });
+    const response = await apiFetch("/api/home");
+    if (!response.ok) {
+      throw new Error("Homepage update failed.");
+    }
     const payload = await response.json();
     renderHomepage(payload);
-  } finally {
-    refreshButton.disabled = false;
-    refreshButton.textContent = "Refresh";
+  } catch {
+    providerNote.textContent = state.sections.length
+      ? "Automatic updates will retry shortly."
+      : "Zelthir could not load the latest coverage yet.";
   }
+}
+
+function startHomepageAutoUpdates() {
+  void loadHomepage();
+  setInterval(() => {
+    if (!document.hidden) {
+      void loadHomepage();
+    }
+  }, homepagePollMs);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      void loadHomepage();
+    }
+  });
 }
 
 function handleInterestToggle(target) {
@@ -2730,7 +2913,7 @@ async function startEmailLogin(event) {
 
   setStatus(authStatus, "Sending code...");
   try {
-    const response = await fetch("/api/auth/start", {
+    const response = await apiFetch("/api/auth/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -2741,10 +2924,14 @@ async function startEmailLogin(event) {
     }
     state.authEmail = email;
     setStatus(authStatus, payload.message || "Enter the code to continue.");
+    emailLoginForm?.classList.add("auth-form--compact");
     if (loginCodeForm) {
       loginCodeForm.hidden = false;
     }
-    loginCodeInput?.focus();
+    requestAnimationFrame(() => {
+      loginCodeForm?.scrollIntoView({ block: "nearest" });
+      loginCodeInput?.focus();
+    });
   } catch (error) {
     setStatus(authStatus, error.message || "Could not start sign in.");
   }
@@ -2765,7 +2952,7 @@ async function verifyEmailLogin(event) {
 
   setStatus(authStatus, "Signing in...");
   try {
-    const response = await fetch("/api/auth/verify", {
+    const response = await apiFetch("/api/auth/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, code }),
@@ -2786,10 +2973,11 @@ async function verifyEmailLogin(event) {
 
 async function signOut() {
   try {
-    await fetch("/api/logout", { method: "POST" });
+    await apiFetch("/api/logout", { method: "POST" });
   } finally {
     state.user = null;
     state.profile = null;
+    resetAuthFlow();
     renderAccountState();
   }
 }
@@ -2830,7 +3018,6 @@ document.addEventListener("click", (event) => {
   }
 });
 
-refreshButton?.addEventListener("click", refreshHomepage);
 coverageClose?.addEventListener("click", closeModal);
 coverageBackdrop?.addEventListener("click", closeModal);
 accountButton?.addEventListener("click", openAccountFlow);
@@ -2844,7 +3031,7 @@ googleSignInButton?.addEventListener("click", () => {
     setStatus(authStatus, "Email sign-in is available for this session.");
     return;
   }
-  window.location.href = "/api/auth/google/start";
+  window.location.href = apiUrl("/api/auth/google/start");
 });
 emailLoginForm?.addEventListener("submit", startEmailLogin);
 loginCodeForm?.addEventListener("submit", verifyEmailLogin);
@@ -2908,5 +3095,4 @@ setActivePanel(state.activePanel);
 
 void loadMe();
 void loadAuthOptions();
-loadHomepage();
-setInterval(loadHomepage, homepagePollMs);
+startHomepageAutoUpdates();
